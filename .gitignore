@@ -1,0 +1,9 @@
+venv/
+.env
+.env/
+env/
+.venv/
+ENV/
+__pycache__/
+.idea/
+*.iml
