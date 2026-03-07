@@ -1,51 +1,57 @@
-import logging
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command
+from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+import asyncio
 from config import BOT_TOKEN
+from marzban import create_user, delete_user, get_user_link
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    await update.message.reply_html(
-        f"Привет, {user.mention_html()}!\n"
-        f"Используйте /help для списка команд."
+@dp.message(Command('start'))
+async def start(message: Message):
+    kb = [
+        [KeyboardButton(text='Подписка'), KeyboardButton(text='Помощь')],
+    ]
+    keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, input_field_placeholder='Хз зачем, но я так могу')
+
+    await message.answer('ЗДАРОВА, ДРУК, Я ХОЧУ ТВОИХ ДЕНЕГ!', reply_markup=keyboard)
+
+@dp.message(F.text.lower() == 'подписка')
+async def subscription_user(message: Message):
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(
+        text="Подписка 1 месяц - 150р",
+        callback_data="subscription_1_mounts")
+    )
+    builder.add(InlineKeyboardButton(
+        text='Подписка 3 месяца - 400р',
+        callback_data="subscription_3_mounts"
+    ))
+    await message.answer(
+        "Подписка",
+        reply_markup=builder.as_markup()
     )
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    help_text = """
-    Доступные команды:
-    /start - Начать работу
-    /help - Помощь
-    /echo [текст] - Эхо
-    """
-    await update.message.reply_text(help_text)
+@dp.callback_query(F.data == "subscription_1_mounts")
+async def subscription_1_mounts(callback: CallbackQuery):
+    create_user(f'tg_{callback.from_user.id}', 30)
+    user_url = str(get_user_link(f'tg_{callback.from_user.id}'))
+    await callback.message.answer(user_url)
 
+@dp.callback_query(F.data == "subscription_3_mounts")
+async def subscription_1_mounts(callback: CallbackQuery):
+    create_user(f'tg_{callback.from_user.id}', 90)
+    user_url = str(get_user_link(f'tg_{callback.from_user.id}'))
+    await callback.message.answer(user_url)
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Получаем текст после команды /echo
-    text_to_echo = ' '.join(context.args)
-    if text_to_echo:
-        await update.message.reply_text(text_to_echo)
-    else:
-        await update.message.reply_text("Напишите текст после команды: /echo привет")
+@dp.message(F.text.lower() == 'помощь')
+async def help_user(message: Message):
+    await message.reply("Тут должна быть помощь, тоже в разработке!")
 
-
-def main():
-    # Создаем Application
-    application = Application.builder().token(BOT_TOKEN).build()
-
-    # Регистрируем обработчики команд
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("echo", echo))
-
-    # Запускаем бота
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
-
+async def main():
+    await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
