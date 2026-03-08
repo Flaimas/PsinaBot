@@ -41,4 +41,13 @@ def delete_user(username):
     r = requests.delete(f'{MARZBAN_URL}/api/user/{username}', headers=headers)
     print(r.json())
 
-print(type(get_user_link('Test')))
+def check_user(username):
+    token = get_token()
+    headers = {'Authorization': f'Bearer {token}'}
+    r = requests.get(f'{MARZBAN_URL}/api/user/{username}', headers=headers)
+    if r.status_code == 200:
+        return True
+    else:
+        return False
+
+check_user('Test')

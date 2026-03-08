@@ -4,7 +4,7 @@ from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, InlineKe
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import asyncio
 from config import BOT_TOKEN
-from marzban import create_user, delete_user, get_user_link
+from marzban import create_user, delete_user, get_user_link, check_user
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -23,28 +23,27 @@ async def subscription_user(message: Message):
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(
         text="Подписка 1 месяц - 150р",
-        callback_data="subscription_1_mounts")
+        callback_data="subscription_30")
     )
     builder.add(InlineKeyboardButton(
         text='Подписка 3 месяца - 400р',
-        callback_data="subscription_3_mounts"
+        callback_data="subscription_90"
     ))
     await message.answer(
         "Подписка",
         reply_markup=builder.as_markup()
     )
 
-@dp.callback_query(F.data == "subscription_1_mounts")
-async def subscription_1_mounts(callback: CallbackQuery):
-    create_user(f'tg_{callback.from_user.id}', 30)
-    user_url = str(get_user_link(f'tg_{callback.from_user.id}'))
-    await callback.message.answer(user_url)
-
-@dp.callback_query(F.data == "subscription_3_mounts")
-async def subscription_1_mounts(callback: CallbackQuery):
-    create_user(f'tg_{callback.from_user.id}', 90)
-    user_url = str(get_user_link(f'tg_{callback.from_user.id}'))
-    await callback.message.answer(user_url)
+@dp.callback_query(F.data.in_({"subscription_30", "subscription_90"}))
+async def subscription(callback: CallbackQuery):
+    days = int(callback.data.split('_')[-1])
+    username = f'tg_{callback.from_user.id}'
+    if not check_user(username):
+        create_user(username, days)
+        user_url = str(get_user_link(f'tg_{callback.from_user.id}'))
+        await callback.message.answer(user_url)
+    else:
+        await callback.message.answer('Подписка уже получена!')
 
 @dp.message(F.text.lower() == 'помощь')
 async def help_user(message: Message):
