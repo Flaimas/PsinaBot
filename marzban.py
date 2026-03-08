@@ -15,7 +15,7 @@ def get_token():
 
 def get_user_link(username):
     r = requests.get(f'{MARZBAN_URL}/api/user/{username}', headers={'Authorization': f'Bearer {get_token()}'})
-    return r.json()['links']
+    return ''.join(r.json()['links'])
 
 def create_user(username, days):
     token = get_token()
