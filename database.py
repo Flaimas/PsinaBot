@@ -37,6 +37,14 @@ async def db_delete_user(order_id):
         )
         await db.commit()
 
+async def update_order_status(order_id: int, new_status: str):
+    async with aiosqlite.connect('orders.db') as db:
+        await db.execute(
+            'UPDATE orders SET status = ? WHERE id = ?',
+            (new_status, order_id)
+        )
+        await db.commit()
+
 async def get_order(order_id):
     async with aiosqlite.connect('orders.db') as db:
         cursor = await db.execute(
@@ -44,6 +52,7 @@ async def get_order(order_id):
             (order_id,)
         )
         return await cursor.fetchone()
+
 
 async def get_orders_list():
     async with aiosqlite.connect('orders.db') as db:

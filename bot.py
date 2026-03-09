@@ -5,19 +5,23 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import asyncio
 from config import BOT_TOKEN, ADMIN_ID
 from marzban import create_user, delete_user, get_user_link, check_user
-from database import add_order, create_db, get_order, check_pending_order, get_orders_list, db_delete_user
+from database import add_order, create_db, get_order, check_pending_order, get_orders_list, db_delete_user, update_order_status
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 @dp.message(Command('start'))
 async def start(message: Message):
-    kb = [
-        [KeyboardButton(text='Подписка'), KeyboardButton(text='Помощь')],
-    ]
-    keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, input_field_placeholder='Хз зачем, но я так могу')
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Купить VPN", callback_data="vpn_start"))
+    builder.row(InlineKeyboardButton(text="Инструкции", callback_data="instruction"))
+    builder.row(InlineKeyboardButton(text="Помощь", callback_data="help"))
 
-    await message.answer('ЗДАРОВА, ДРУК, Я ХОЧУ ТВОИХ ДЕНЕГ!', reply_markup=keyboard)
+    await message.answer(f"Привет, {message.from_user.first_name}!"
+                         f"<blockquote>Ваш ID: {message.from_user.id}\n"
+                         f"Статус VPN: [ДОБАВИТЬ ПРОВЕРКУ]</blockquote>",
+                         reply_markup=builder.as_markup(),
+                         parse_mode="HTML")
 
 @dp.message(Command('admin'), F.from_user.id == int(ADMIN_ID))
 async def admin_panel(message: Message):
@@ -27,13 +31,17 @@ async def admin_panel(message: Message):
 
 @dp.callback_query(F.data.startswith("buy_"))
 async def give_subscription(callback: CallbackQuery):
+    await callback.message.delete()
     print("Сюда я вхожу")
     await callback.answer() #убираем часики
     order = await get_order(int(callback.data.split("_")[-1]))
+    order_id = order[0]
     user_id = order[1]
     tariff = order[2]
     days = order[3]
     username = f'tg_{user_id}'
+    await update_order_status(int(order_id), 'issued')
+
     if not check_user(username):
         create_user(username, days)
         user_url = get_user_link(username)
@@ -52,14 +60,7 @@ def get_main_subscription_keyboard():
     builder.row(InlineKeyboardButton(text='PRO (9 устр.)', callback_data="sub_PRO"))
     return builder.as_markup()
 
-@dp.message(F.text.lower() == 'подписка')
-async def cmd_subscription(message: Message):
-    await message.answer(
-        "Выберите тарифный план:",
-        reply_markup=get_main_subscription_keyboard()
-    )
-
-@dp.callback_query(F.data == 'подписка')
+@dp.callback_query(F.data == 'vpn_start')
 async def back_to_subscription(callback: CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(
@@ -200,12 +201,12 @@ def inline_buy_subscription(tariff):
     builder.row(InlineKeyboardButton(text="3 месяца", callback_data=f"time_{tariff}_90"))
     builder.row(InlineKeyboardButton(text="6 месяцев", callback_data=f"time_{tariff}_180"))
     builder.row(InlineKeyboardButton(text="12 месяцев", callback_data=f"time_{tariff}_360"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"подписка"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"vpn_start"))
     return builder.as_markup()
 
-@dp.message(F.text.lower() == 'помощь')
-async def help_user(message: Message):
-    await message.reply("Тут должна быть помощь, тоже в разработке!")
+@dp.callback_query(F.data == "help")
+async def help_user(callback: CallbackQuery):
+    await callback.message.reply("Тут должна быть помощь, тоже в разработке!")
 
 async def main():
     await create_db()
