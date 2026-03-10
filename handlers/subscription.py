@@ -1,0 +1,158 @@
+from aiogram import Router, F
+from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+import asyncio
+from config import BOT_TOKEN, ADMIN_ID
+from database import add_order, create_db, get_order, check_pending_order, get_orders_list, db_delete_user, update_order_status
+from marzban import marzban_api
+
+router = Router()
+
+@router.callback_query(F.data == 'vpn_start')
+async def back_to_subscription(callback: CallbackQuery):
+    await callback.answer()
+    user_id = f'tg_{callback.from_user.id}'
+    status_vpn = await marzban_api.check_user(user_id)
+    if status_vpn:
+
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data="menu_sub"))
+        builder.row(InlineKeyboardButton(text="Назад", callback_data='start'))
+
+        await callback.message.edit_text(
+            f"У вас уже подключен тарифный план,\n"
+            f"используйте меню управления подпиской!",
+            reply_markup=builder.as_markup()
+        )
+        return
+
+    await callback.message.edit_text(
+        "Выберит тарифный план:",
+        reply_markup=get_main_subscription_keyboard()
+    )
+
+def get_main_subscription_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="STANDART (3 устр.)", callback_data="sub_STANDART"))
+    builder.row(InlineKeyboardButton(text='GO (5 устр.)', callback_data="sub_GO"))
+    builder.row(InlineKeyboardButton(text='PRO (9 устр.)', callback_data="sub_PRO"))
+    builder.row(InlineKeyboardButton(text='Назад', callback_data="start"))
+    return builder.as_markup()
+
+@router.callback_query(F.data.startswith("sub_"))
+async def cb_subscription_details(callback: CallbackQuery):
+    # Убираем "часики" на кнопке
+    await callback.answer()
+
+    # Получаем тариф из callback_data (например, STANDART)
+    tariff = callback.data.split("_")[1]
+
+    # Редактируем старое сообщение вместо отправки нового
+    await callback.message.edit_text(
+        f"Вы выбрали тариф: {tariff}\nВыберите срок подписки.",
+        reply_markup=inline_subscription_list(tariff)  # Или другая клавиатура для оплаты
+    )
+
+def inline_subscription_list(tariff):
+    price = price_subscription()
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=f"1 месяц - {price[tariff]['30']} ₽", callback_data=f"time_{tariff}_30"))
+    builder.row(InlineKeyboardButton(text=f"3 месяца - {price[tariff]['90']} ₽", callback_data=f"time_{tariff}_90"))
+    builder.row(InlineKeyboardButton(text=f"6 месяцев - {price[tariff]['180']} ₽", callback_data=f"time_{tariff}_180"))
+    builder.row(InlineKeyboardButton(text=f"12 месяцев - {price[tariff]['360']} ₽", callback_data=f"time_{tariff}_360"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"vpn_start"))
+    return builder.as_markup()
+
+def price_subscription():
+    price = {
+        "STANDART": {
+            "30": "149",
+            "90": "429",
+            "180": "799",
+            "360": "1499"
+        },
+        "GO": {
+            "30": "249",
+            "90": "709",
+            "180": "1339",
+            "360": "2499"
+        },
+        "PRO": {
+            "30": "399",
+            "90": "1139",
+            "180": "2149",
+            "360": "4049"
+        }
+    }
+    return price
+
+@router.callback_query(F.data.startswith("time_"))
+async def time_subscription(callback: CallbackQuery):
+    await callback.answer()
+
+    tariff = callback.data.split("_")[1]
+    days = callback.data.split('_')[2]
+    price = price_subscription()
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text='Купить', callback_data=f"pay_{tariff}_{days}"))
+    builder.row(InlineKeyboardButton(text='Назад', callback_data=f"sub_{tariff}"))
+
+    await callback.message.edit_text(text=f'Тариф: {tariff}\n'
+                                          f'Срок: {days} дней.\n'
+                                          f'Стоимость: {price[tariff][days]} ₽',
+                                     reply_markup=builder.as_markup())
+
+@router.callback_query(F.data.startswith("pay_"))
+async def pay_subscription(callback: CallbackQuery):
+    await callback.answer()
+    price = price_subscription() #стоимость подписка
+
+    tariff = callback.data.split("_")[1]
+    days = callback.data.split('_')[2]
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f'cp_{callback.from_user.id}_{tariff}_{days}'))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"time_{tariff}_{days}"))
+    await callback.message.edit_text(
+        f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
+        f"\n"
+        f"Подписка {tariff} - {days} дней.\n"
+        f"К оплате: {price[tariff][days]} ₽",
+        reply_markup=builder.as_markup()
+                                     )
+
+@router.callback_query(F.data.startswith("cp_"))
+async def cp_subscription(callback: CallbackQuery):
+    await callback.answer()
+
+    user_id = int(callback.data.split("_")[1])
+    tariff = callback.data.split("_")[2]
+    days = int(callback.data.split("_")[3])
+    existing_order = await check_pending_order(user_id) #проверка - существуют ли необработанные платежи
+    # existing_sub = await ()
+
+    if existing_order:
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="ОК, БРО БРО БРО, ЖДУ!", callback_data="wait_ok"))
+        builder.row(InlineKeyboardButton(text="Отмена", callback_data="wait_ok"))
+        await callback.message.edit_text("У вас уже есть оплаченный заказ, дождитесь подтверждения!",
+                                         reply_markup= builder.as_markup()
+                                         )
+        return
+
+    await add_order(user_id, tariff, days)#добавление заказа в БД
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Перейти к списку", callback_data=f"admin_order_list"))
+    await callback.bot.send_message(chat_id=int(ADMIN_ID),
+                                    text=f"Пользователь {user_id} оплатил подписку {tariff} на {days} дней!",
+                                    reply_markup=builder.as_markup()
+                                    )
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Крутяк", callback_data=f"НИХУЯ_ТУТ_НЕТ"))
+    await callback.message.edit_text(
+        "Платеж принят в обработку, в скором времени ваша подписка станет активной!",
+        reply_markup=builder.as_markup()
+    )
