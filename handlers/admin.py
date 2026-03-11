@@ -6,8 +6,11 @@ import asyncio
 from config import BOT_TOKEN, ADMIN_ID
 from marzban import marzban_api
 from database import add_order, create_db, get_order, check_pending_order, get_orders_list, db_delete_user, update_order_status
+from prices import PRICES
 
 router = Router()
+router.message.filter(F.from_user.id == int(ADMIN_ID))
+router.callback_query.filter(F.from_user.id == int(ADMIN_ID))
 
 @router.message(Command('admin'), F.from_user.id == int(ADMIN_ID))
 async def admin_panel(message: Message):
@@ -18,26 +21,37 @@ async def admin_panel(message: Message):
 
 @router.callback_query(F.data == 'admin_order_list')
 async def admin_order_list(callback: CallbackQuery):
-    orders = await get_orders_list()
+    await callback.answer()
+    orders = await get_orders_list('pending')
+    extend_orders = await get_orders_list('extend')
 
-    if not orders:
+    if orders:
+        for order in orders:
+            # Предположим, твоя функция возвращает (id, user_id, tariff, days)
+            # ВАЖНО: передавай в кнопку именно ID ЗАКАЗА, а не user_id
+            order_db_id, user_id, tariff, days = order[0], order[1], order[2], order[3]
+            await callback.message.answer(
+                text=f"📦 **Заказ №{order_db_id}**\n"
+                     f"👤 Пользователь: `{user_id}`\n"
+                     f"💎 Тариф: {tariff} ({days} дн.)\n"
+                     f"ПЕРВЫЙ ЗАКАЗ {PRICES[tariff][str(days)]}",
+                reply_markup=accept_menu(order_db_id),  # Передаем только ID заказа
+                parse_mode="Markdown"
+            )
+    if extend_orders:
+        for order in extend_orders:
+            order_db_id, user_id, tariff, days = order[0], order[1], order[2], order[3]
+            await callback.message.answer(
+                text=f"📦 **Заказ №{order_db_id}**\n"
+                     f"👤 Пользователь: `{user_id}`\n"
+                     f"💎 Тариф: {tariff} ({days} дн.)\n"
+                     f"ПРОДЛЕНИЕ ПОДПИСКИ {PRICES[tariff][str(days)]}",
+                reply_markup=accept_extend_menu(order_db_id),  # Передаем только ID заказа
+                parse_mode="Markdown"
+            )
+    if not orders and not extend_orders:
         await callback.answer("Список заказов пуст")
         return
-
-    await callback.answer()  # Убираем часики
-
-    for order in orders:
-        # Предположим, твоя функция возвращает (id, user_id, tariff, days)
-        # ВАЖНО: передавай в кнопку именно ID ЗАКАЗА, а не user_id
-        order_db_id, user_id, tariff, days = order[0], order[1], order[2], order[3]
-
-        await callback.message.answer(
-            text=f"📦 **Заказ №{order_db_id}**\n"
-                 f"👤 Пользователь: `{user_id}`\n"
-                 f"💎 Тариф: {tariff} ({days} дн.)",
-            reply_markup=accept_menu(order_db_id),  # Передаем только ID заказа
-            parse_mode="Markdown"
-        )
 
 @router.callback_query(F.data.startswith("order_delete_"))
 async def order_delete(callback: CallbackQuery):
@@ -50,13 +64,19 @@ async def order_delete(callback: CallbackQuery):
     builder.row(InlineKeyboardButton(text='Главное меню', callback_data=f'start'))
     builder.row(InlineKeyboardButton(text='Поддержка', callback_data='help'))
 
-    await callback.bot.send_message(chat_id=user_id, text='Администратор не подтвердил ваш платеж..', reply_markup=builder.as_markup())
+    await callback.bot.send_message(chat_id=user_id, text='Администратор отклонил ваш платеж...', reply_markup=builder.as_markup())
     await db_delete_user(order_id)
     await callback.message.delete()
 
 def accept_menu(db_id):
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Подтвердить", callback_data=f"buy_{db_id}"))
+    builder.row(InlineKeyboardButton(text="Отклонить", callback_data=f"order_delete_{db_id}"))
+    return builder.as_markup()
+
+def accept_extend_menu(db_id):
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Подтвердить", callback_data=f"ex_buy_{db_id}"))
     builder.row(InlineKeyboardButton(text="Отклонить", callback_data=f"order_delete_{db_id}"))
     return builder.as_markup()
 
@@ -70,10 +90,10 @@ async def give_subscription(callback: CallbackQuery):
     tariff = order[2]
     days = order[3]
     username = f'tg_{user_id}'
-    await update_order_status(int(order_id), 'issued')
 
     if not await marzban_api.check_user(username):
-        await marzban_api.create_user(username, days)
+        await marzban_api.create_user(username, days, tariff, PRICES[tariff]['data_limit']) #создание пользователя
+        await update_order_status(int(order_id), 'issued') #обновление в бд
         user_url = await marzban_api.get_user_link(username)
         await callback.bot.send_message(
             chat_id=user_id,  # ID того, кому летит ссылка
@@ -81,3 +101,20 @@ async def give_subscription(callback: CallbackQuery):
         )
     else:
         await callback.message.answer('Подписка уже получена!')
+
+@router.callback_query(F.data.startswith("ex_buy_"))
+async def update_extend(callback: CallbackQuery):
+    await callback.answer()
+    order = await get_order(int(callback.data.split("_")[2]))
+    order_id, user_id, tariff, days = order[0], order[1], order[2], order[3]
+    username = f'tg_{user_id}'
+    user_info = await marzban_api.get_user_info(username)
+    if user_info and order:
+        expire = user_info['expire'] + (days * 24 * 60 * 60)
+        data_limit = PRICES[tariff]['data_limit']
+        if await marzban_api.update_user(username, expire, data_limit):
+            await update_order_status(int(order_id), 'issued')
+            await callback.bot.send_message(
+                chat_id=user_id,  # ID того, кому летит ссылка
+                text=f"Ваша подписка была продлена!"
+            )

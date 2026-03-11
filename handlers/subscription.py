@@ -1,10 +1,10 @@
 from aiogram import Router, F
-from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import asyncio
-from config import BOT_TOKEN, ADMIN_ID
-from database import add_order, create_db, get_order, check_pending_order, get_orders_list, db_delete_user, update_order_status
+from config import ADMIN_ID
+from database import add_order, check_pending_order
 from marzban import marzban_api
+from prices import PRICES
 
 router = Router()
 
@@ -54,37 +54,13 @@ async def cb_subscription_details(callback: CallbackQuery):
     )
 
 def inline_subscription_list(tariff):
-    price = price_subscription()
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=f"1 месяц - {price[tariff]['30']} ₽", callback_data=f"time_{tariff}_30"))
-    builder.row(InlineKeyboardButton(text=f"3 месяца - {price[tariff]['90']} ₽", callback_data=f"time_{tariff}_90"))
-    builder.row(InlineKeyboardButton(text=f"6 месяцев - {price[tariff]['180']} ₽", callback_data=f"time_{tariff}_180"))
-    builder.row(InlineKeyboardButton(text=f"12 месяцев - {price[tariff]['360']} ₽", callback_data=f"time_{tariff}_360"))
+    builder.row(InlineKeyboardButton(text=f"1 месяц - {PRICES[tariff]['30']} ₽", callback_data=f"time_{tariff}_30"))
+    builder.row(InlineKeyboardButton(text=f"3 месяца - {PRICES[tariff]['90']} ₽", callback_data=f"time_{tariff}_90"))
+    builder.row(InlineKeyboardButton(text=f"6 месяцев - {PRICES[tariff]['180']} ₽", callback_data=f"time_{tariff}_180"))
+    builder.row(InlineKeyboardButton(text=f"12 месяцев - {PRICES[tariff]['360']} ₽", callback_data=f"time_{tariff}_360"))
     builder.row(InlineKeyboardButton(text="Назад", callback_data=f"vpn_start"))
     return builder.as_markup()
-
-def price_subscription():
-    price = {
-        "STANDART": {
-            "30": "149",
-            "90": "429",
-            "180": "799",
-            "360": "1499"
-        },
-        "GO": {
-            "30": "249",
-            "90": "709",
-            "180": "1339",
-            "360": "2499"
-        },
-        "PRO": {
-            "30": "399",
-            "90": "1139",
-            "180": "2149",
-            "360": "4049"
-        }
-    }
-    return price
 
 @router.callback_query(F.data.startswith("time_"))
 async def time_subscription(callback: CallbackQuery):
@@ -92,7 +68,6 @@ async def time_subscription(callback: CallbackQuery):
 
     tariff = callback.data.split("_")[1]
     days = callback.data.split('_')[2]
-    price = price_subscription()
 
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text='Купить', callback_data=f"pay_{tariff}_{days}"))
@@ -100,13 +75,12 @@ async def time_subscription(callback: CallbackQuery):
 
     await callback.message.edit_text(text=f'Тариф: {tariff}\n'
                                           f'Срок: {days} дней.\n'
-                                          f'Стоимость: {price[tariff][days]} ₽',
+                                          f'Стоимость: {PRICES[tariff][days]} ₽',
                                      reply_markup=builder.as_markup())
 
 @router.callback_query(F.data.startswith("pay_"))
 async def pay_subscription(callback: CallbackQuery):
     await callback.answer()
-    price = price_subscription() #стоимость подписка
 
     tariff = callback.data.split("_")[1]
     days = callback.data.split('_')[2]
@@ -118,7 +92,7 @@ async def pay_subscription(callback: CallbackQuery):
         f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
         f"\n"
         f"Подписка {tariff} - {days} дней.\n"
-        f"К оплате: {price[tariff][days]} ₽",
+        f"К оплате: {PRICES[tariff][days]} ₽",
         reply_markup=builder.as_markup()
                                      )
 

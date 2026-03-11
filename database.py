@@ -21,11 +21,27 @@ async def check_pending_order(user_id):
         )
         return await cursor.fetchone() # Вернет ID заказа или None
 
+async def check_extend_order(user_id):
+    async with aiosqlite.connect('orders.db') as db:
+        cursor = await db.execute(
+            'SELECT id FROM orders WHERE user_id = ? AND status = "extend"',
+            (user_id,)
+        )
+        return await cursor.fetchone() # Вернет ID заказа или None
+
 async def add_order(user_id, tariff, days):
     async with aiosqlite.connect('orders.db') as db:
         await db.execute(
             'INSERT INTO orders (user_id, tariff, days) VALUES (?, ?, ?)',
             (user_id, tariff, days)
+        )
+        await db.commit()
+
+async def add_expire_order(user_id, tariff, days, status):
+    async with aiosqlite.connect('orders.db') as db:
+        await db.execute(
+            'INSERT INTO orders (user_id, tariff, days, status) VALUES (?, ?, ?, ?)',
+            (user_id, tariff, days, status)
         )
         await db.commit()
 
@@ -54,9 +70,11 @@ async def get_order(order_id):
         return await cursor.fetchone()
 
 
-async def get_orders_list():
+async def get_orders_list(status):
     async with aiosqlite.connect('orders.db') as db:
         cursor = await db.execute(
-            'SELECT id, user_id, tariff, days FROM orders WHERE status = "pending"'
+            'SELECT id, user_id, tariff, days FROM orders WHERE status = ?',
+            (status,)
         )
         return await cursor.fetchall()
+

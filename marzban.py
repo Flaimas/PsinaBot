@@ -1,6 +1,7 @@
 import aiohttp
 from config import MARZBAN_URL, MARZBAN_USERNAME, MARZBAN_PASSWORD
 from datetime import datetime, timedelta, timezone
+from prices import PRICES
 
 
 class MarzbanAPI:
@@ -10,12 +11,6 @@ class MarzbanAPI:
         self.password = password
         self.session = None
         self.token = None
-
-
-    @staticmethod
-    def get_expire_timestamp(days: int) -> int:
-        expire = datetime.now(timezone.utc) + timedelta(days=days)
-        return int(expire.timestamp())
 
     async def _request(self, method, url, **kwargs):
         api_session = await self._get_session()
@@ -44,21 +39,19 @@ class MarzbanAPI:
             return data['access_token']
 
     async def get_user_link(self, username):
-        headers = {'Authorization': f'Bearer {self.token}'}
-        status, data = await self._request('get', f'{self.url}/api/user/{username}', headers=headers)
+        status, data = await self._request('get', f'{self.url}/api/user/{username}')
         if status == 200:
             return ''.join(data['links'])
         return f"Error: {status}!"
 
-    async def create_user(self, username, days, note='', data_limit = 214748364800):
+    async def create_user(self, username, days, tariff, data_limit = 214748364800):
         utc_days = self.get_expire_timestamp(days)
-        headers = {'Authorization': f'Bearer {self.token}'}
         data = {
             'username': username,
             'expire': utc_days,
             'data_limit': data_limit,
             "data_limit_reset_strategy": "month",
-            'note': note,
+            'note': tariff,
             'proxies': {
                 'vless': {
                     'flow': 'xtls-rprx-vision'
@@ -68,29 +61,47 @@ class MarzbanAPI:
                 'vless': ['VLESS TCP TLS']
             }
         }
-        status, data = await self._request('post', f'{self.url}/api/user', json=data, headers=headers)
+        status, data = await self._request('post', f'{self.url}/api/user', json=data)
         if status == 200:
             return True
         else:
             return False
 
     async def delete_user(self, username):
-        headers = {'Authorization': f'Bearer {self.token}'}
-        status, data = await self._request('delete', f'{self.url}/api/user/{username}', headers=headers)
+        status, data = await self._request('delete', f'{self.url}/api/user/{username}')
         if status == 200:
             return True
         return False
 
     async def check_user(self, username):
-        headers = {'Authorization': f'Bearer {self.token}'}
-        status, data = await self._request('get', f'{self.url}/api/user/{username}', headers=headers)
+        status, data = await self._request('get', f'{self.url}/api/user/{username}')
         if status == 200:
             return True
         else:
             return False
 
+    async def get_user_info(self, username):
+        status, data = await self._request('get', f'{self.url}/api/user/{username}')
+        if status == 200:
+            return data
+        return None
+
+    async def update_user(self, username: str, expire: int, data_limit: int, data_limit_reset_strategy: str = 'month'):
+        json_data = {
+            "expire": expire,
+            "data_limit": data_limit,
+            "data_limit_reset_strategy": data_limit_reset_strategy
+        }
+        status, data = await self._request('put', f'{self.url}/api/user/{username}', json=json_data)
+        return status == 200
+
     async def close(self):
         if self.session:
             await self.session.close()
+
+    @staticmethod
+    def get_expire_timestamp(days: int) -> int:
+        expire = datetime.now(timezone.utc) + timedelta(days=days)
+        return int(expire.timestamp())
 
 marzban_api = MarzbanAPI(MARZBAN_URL, MARZBAN_USERNAME, MARZBAN_PASSWORD)

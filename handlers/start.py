@@ -10,10 +10,11 @@ router = Router()
 async def start(message: Message):
     user_name = message.from_user.first_name
     user_id = message.from_user.id
-    status_vpn = f'✅ Активна' if await check_sub(user_id) else f'❌ Не активна'
+    sub_status = await check_sub(user_id)
+    icon_status = f'✅ Активна' if sub_status else f'❌ Не активна'
 
     await message.answer(
-        **text_start_menu(user_name, user_id, status_vpn)
+        **text_start_menu(user_name, user_id, icon_status, sub_status)
     )
 
 @router.callback_query(F.data == "start")
@@ -22,10 +23,11 @@ async def cb_start(callback: CallbackQuery):
 
     user_name = callback.from_user.first_name
     user_id = callback.from_user.id
-    status_vpn = f'✅ Активна' if await check_sub(user_id) else f'❌ Не активна'
+    sub_status = await check_sub(user_id)
+    icon_status = f'✅ Активна' if sub_status else f'❌ Не активна'
 
     await callback.message.edit_text(
-        **text_start_menu(user_name, user_id, status_vpn)
+        **text_start_menu(user_name, user_id, icon_status, sub_status)
     )
 
 async def check_sub(user_id):
@@ -33,22 +35,31 @@ async def check_sub(user_id):
         return True
     return False
 
-def text_start_menu(user_name, user_id, status_vpn):
+def text_start_menu(user_name, user_id, icon_status, sub_status):
+    img_url = "https://i.pinimg.com/736x/e0/10/3e/e0103eba76f37d3d765ca10babf9b34a.jpg"
+    # Скрытая ссылка через HTML: пустой символ с гиперссылкой
+    hidden_link = f'<a href="{img_url}">&#8203;</a>'
     text = (
+        f"{hidden_link}"
         f"Привет, {user_name}!\n"
         f"<blockquote>Ваш ID: {user_id}\n"
-        f"Статус VPN: {status_vpn}</blockquote>"
+        f"Статус VPN: {icon_status}</blockquote>"
     )
     # Возвращаем словарь со всеми аргументами
     return {
         "text": text,
-        "reply_markup": get_start_keyboard(),
+        "reply_markup": get_start_keyboard(sub_status),
         "parse_mode": "HTML"
     }
 
-def get_start_keyboard():
+def get_start_keyboard(sub_status):
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Купить VPN", callback_data=f"vpn_start"))
+    print(type(sub_status), sub_status)
+    if sub_status:
+        builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data=f"menu_sub"))
+    if not sub_status:
+        builder.row(InlineKeyboardButton(text="Купить VPN", callback_data=f"vpn_start"))
+
     builder.row(InlineKeyboardButton(text="Инструкции", callback_data="instruction"))
     builder.row(InlineKeyboardButton(text="Помощь", callback_data="help"))
     return builder.as_markup()

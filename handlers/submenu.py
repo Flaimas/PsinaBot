@@ -1,0 +1,163 @@
+from aiogram import Router, F
+from aiogram.types import InlineKeyboardButton, CallbackQuery
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from config import ADMIN_ID
+from database import add_expire_order, check_extend_order
+from marzban import marzban_api
+from datetime import datetime, timezone
+from prices import PRICES
+
+router = Router()
+
+@router.callback_query(F.data == 'menu_sub')
+async def menu_sub(callback: CallbackQuery):
+    await callback.answer()
+    user_id = f"tg_{callback.from_user.id}"
+    user_info = await marzban_api.get_user_info(user_id)
+    if not user_info:
+        await callback.message.edit_text(
+            "У вас нет активной подписки!",
+            reply_markup=get_no_sub_menu() # кнопка "Купить"
+        )
+        return
+    days = days_left(user_info['expire']) if user_info['expire'] else '∞'
+    sub_status = 'Активна' if (user_info['status'] == "active") else "Не активна" #всего два положения, временный костыль, нужно будет создать функцию
+    traffic = traffic_left(user_info["data_limit"], user_info['used_traffic'])
+
+    text = (
+        f"Подписка {user_info['note']}!\n"
+        f"<blockquote>Ваш ID: {callback.from_user.id}\n"
+        f"Статус подписки: {sub_status}\n"
+        f"Дней осталось: {days}\n"
+        f"Трафик: {traffic}</blockquote>"
+    )
+    await callback.message.edit_text(text=text, reply_markup=get_sub_menu(), parse_mode="html")
+
+def get_sub_menu():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data='add_days'))
+    builder.row(InlineKeyboardButton(text="Изменить тарифный план", callback_data='new_tariff'))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data='start'))
+    return builder.as_markup()
+
+def get_no_sub_menu():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Купить VPN", callback_data='vpn_start'))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data='start'))
+    return builder.as_markup()
+
+
+@router.callback_query(F.data == 'add_days')
+async def add_days(callback: CallbackQuery):
+    await callback.answer()
+    user_id = f"tg_{callback.from_user.id}"
+    user_info = await marzban_api.get_user_info(user_id)
+
+    if not user_info:
+        await callback.message.edit_text("У вас нет активной подписки!", reply_markup=get_no_sub_menu())
+        return
+
+    tariff = user_info['note']
+    await callback.message.edit_text(
+        text=f'Выберите на сколько требуется продлить подписку {tariff}',
+        reply_markup=get_price_subscription(tariff)
+    )
+
+def get_price_subscription(tariff):
+    tariff = str(tariff)
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=f"1 месяц - {PRICES[tariff]['30']} ₽", callback_data=f"extend_{tariff}_30"))
+    builder.row(InlineKeyboardButton(text=f"3 месяца - {PRICES[tariff]['90']} ₽", callback_data=f"extend_{tariff}_90"))
+    builder.row(InlineKeyboardButton(text=f"6 месяцев - {PRICES[tariff]['180']} ₽", callback_data=f"extend_{tariff}_180"))
+    builder.row(InlineKeyboardButton(text=f"12 месяцев - {PRICES[tariff]['360']} ₽", callback_data=f"extend_{tariff}_360"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"menu_sub"))
+    return builder.as_markup()
+
+@router.callback_query(F.data.startswith("extend_"))
+async def extend_sub(callback: CallbackQuery):
+    await callback.answer()
+    tariff = callback.data.split("_")[1]
+    days = callback.data.split("_")[2]
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Оплатить", callback_data=f"es_{tariff}_{days}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="add_days"))
+
+    await callback.message.edit_text(
+        text=f"Продлить подписку {tariff} на {days} дней?\n"
+             f"Цена: {PRICES[tariff][days]} ₽",
+        reply_markup=builder.as_markup()
+
+    )
+
+@router.callback_query(F.data.startswith("es_"))
+async def extend_sub_pay(callback: CallbackQuery):
+    await callback.answer()
+    tariff = callback.data.split("_")[1]
+    days = callback.data.split("_")[2]
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f"PAY_EXTEND_{tariff}_{days}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"extend_{tariff}_{days}"))
+
+    await callback.message.edit_text(
+        f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
+        f"\n"
+        f"Продлить {tariff} на {days} дней.\n"
+        f"К оплате: {PRICES[tariff][days]} ₽",
+        reply_markup=builder.as_markup()
+        )
+
+@router.callback_query(F.data.startswith("PAY_EXTEND_"))
+async def pay_extended(callback: CallbackQuery):
+    await callback.answer()
+    tariff = callback.data.split("_")[2]
+    days = callback.data.split("_")[3]
+    user_id = callback.from_user.id
+    user_name = f"tg_{user_id}"
+    user_info = await marzban_api.get_user_info(user_name)
+    db_check = await check_extend_order(user_id)
+    if db_check:
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+        await callback.message.edit_text("Подождите пока администратор подтвердит оплату!", reply_markup=builder.as_markup())
+        return
+    if user_info:
+        await add_expire_order(user_id, tariff, days, "extend")
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+        await callback.message.edit_text("Платеж принят в обработку, в скором времени ваша подписка станет активной!", reply_markup=builder.as_markup())
+        await callback.bot.send_message(text=f"Пользователь {user_id} продлил подписку {tariff} на {days} дней.", chat_id=ADMIN_ID)
+
+@router.callback_query(F.data == 'new_tariff')
+async def new_tariff(callback: CallbackQuery):
+    await callback.answer()
+    user_id = f"tg_{callback.from_user.id}"
+    user_info = await marzban_api.get_user_info(user_id)
+    tariff = user_info['note'] if user_info is not None else False
+    await callback.message.edit_text(text=f'Выберите подписку, ваша текущая {tariff}', reply_markup=get_change_subscription())
+
+def get_change_subscription():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="STANDART (3 устр.)", callback_data="change_sub_STANDART"))
+    builder.row(InlineKeyboardButton(text='GO (5 устр.)', callback_data="change_sub_GO"))
+    builder.row(InlineKeyboardButton(text='PRO (9 устр.)', callback_data="change_sub_PRO"))
+    builder.row(InlineKeyboardButton(text='Назад', callback_data="menu_sub"))
+    return builder.as_markup()
+
+def days_left(expire_timestamp):
+    # Переводим timestamp в дату
+    expire_date = datetime.fromtimestamp(expire_timestamp, tz=timezone.utc)
+    # Берём сегодняшнюю дату
+    now = datetime.now(timezone.utc)
+    # Вычитаем и берём только дни
+    delta = expire_date - now
+    return delta.days
+
+def traffic_left(limit_traffic, used_traffic):
+    if limit_traffic is None or used_traffic is None:
+        return '∞'
+    limit_gb = round(limit_traffic / 1024 / 1024 / 1024, 1)
+    used_gb = round((used_traffic or 0) / 1024 / 1024 / 1024, 1)
+    return f'{used_gb} / {limit_gb} ГБ'
