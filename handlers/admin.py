@@ -1,8 +1,9 @@
+from datetime import datetime
+
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import Message, InlineKeyboardButton, CallbackQuery, CopyTextButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import asyncio
 from config import BOT_TOKEN, ADMIN_ID
 from marzban import marzban_api
 from database import add_order, create_db, get_order, check_pending_order, get_orders_list, db_delete_user, update_order_status
@@ -24,6 +25,7 @@ async def admin_order_list(callback: CallbackQuery):
     await callback.answer()
     orders = await get_orders_list('pending')
     extend_orders = await get_orders_list('extend')
+    update_orders = await get_orders_list('update')
 
     if orders:
         for order in orders:
@@ -34,7 +36,7 @@ async def admin_order_list(callback: CallbackQuery):
                 text=f"📦 **Заказ №{order_db_id}**\n"
                      f"👤 Пользователь: `{user_id}`\n"
                      f"💎 Тариф: {tariff} ({days} дн.)\n"
-                     f"ПЕРВЫЙ ЗАКАЗ {PRICES[tariff][str(days)]}",
+                     f"ПЕРВЫЙ ЗАКАЗ {PRICES[tariff][str(days)]} ₽",
                 reply_markup=accept_menu(order_db_id),  # Передаем только ID заказа
                 parse_mode="Markdown"
             )
@@ -45,11 +47,24 @@ async def admin_order_list(callback: CallbackQuery):
                 text=f"📦 **Заказ №{order_db_id}**\n"
                      f"👤 Пользователь: `{user_id}`\n"
                      f"💎 Тариф: {tariff} ({days} дн.)\n"
-                     f"ПРОДЛЕНИЕ ПОДПИСКИ {PRICES[tariff][str(days)]}",
+                     f"ПРОДЛЕНИЕ ПОДПИСКИ {PRICES[tariff][str(days)]} ₽",
                 reply_markup=accept_extend_menu(order_db_id),  # Передаем только ID заказа
                 parse_mode="Markdown"
             )
-    if not orders and not extend_orders:
+
+    if update_orders:
+        for order in update_orders:
+            order_db_id, user_id, tariff, days = order[0], order[1], order[2], order[3]
+            await callback.message.answer(
+                text=f"📦 **Заказ №{order_db_id}**\n"
+                     f"👤 Пользователь: `{user_id}`\n"
+                     f"💎 Тариф: {tariff} ({days} дн.)\n"
+                     f"ИЗМЕНЕНИЕ ПОДПИСКИ {PRICES[tariff][str(days)]} ₽",
+                reply_markup=accept_extend_menu(order_db_id),  # Передаем только ID заказа
+                parse_mode="Markdown"
+            )
+
+    if not orders and not extend_orders and not update_orders:
         await callback.answer("Список заказов пуст")
         return
 
@@ -94,27 +109,45 @@ async def give_subscription(callback: CallbackQuery):
     if not await marzban_api.check_user(username):
         await marzban_api.create_user(username, days, tariff, PRICES[tariff]['data_limit']) #создание пользователя
         await update_order_status(int(order_id), 'issued') #обновление в бд
-        user_url = await marzban_api.get_user_link(username)
+
+        v2ray_link = await marzban_api.get_user_link(username)
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Копировать ссылку", copy_text=CopyTextButton(text=v2ray_link)))
+        builder.row(InlineKeyboardButton(text="Помощь", callback_data='help'))
+        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+
         await callback.bot.send_message(
             chat_id=user_id,  # ID того, кому летит ссылка
-            text=f"Ваша ссылка готова: {user_url}"
+            text=f"Администратор подтвердил ваш платеж!\n"
+                 f"Ссылка для подключения:\n"
+                 f"<code>{v2ray_link}</code>",
+            parse_mode='HTML',
+            reply_markup=builder.as_markup()
         )
     else:
         await callback.message.answer('Подписка уже получена!')
 
 @router.callback_query(F.data.startswith("ex_buy_"))
 async def update_extend(callback: CallbackQuery):
+    await callback.message.delete()
     await callback.answer()
     order = await get_order(int(callback.data.split("_")[2]))
-    order_id, user_id, tariff, days = order[0], order[1], order[2], order[3]
+    order_id, user_id, tariff, days, status = order[0], order[1], order[2], order[3], order[4]
     username = f'tg_{user_id}'
     user_info = await marzban_api.get_user_info(username)
     if user_info and order:
-        expire = user_info['expire'] + (days * 24 * 60 * 60)
+        time_now = int(datetime.now().timestamp())
+        expire = user_info['expire'] if user_info['expire'] >= time_now else time_now
+        expire = expire + (days * 24 * 60 * 60)
         data_limit = PRICES[tariff]['data_limit']
-        if await marzban_api.update_user(username, expire, data_limit):
+        if await marzban_api.update_user(username, expire, data_limit, tariff):
+            text = {
+                'extend': 'Ваша подписка была продлена!',
+                'update': 'Ваша подписка была изменена!'
+            }
+            user_message = text[status]
             await update_order_status(int(order_id), 'issued')
             await callback.bot.send_message(
                 chat_id=user_id,  # ID того, кому летит ссылка
-                text=f"Ваша подписка была продлена!"
+                text=f"{user_message}"
             )

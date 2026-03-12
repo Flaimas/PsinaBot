@@ -86,10 +86,18 @@ class MarzbanAPI:
             return data
         return None
 
-    async def update_user(self, username: str, expire: int, data_limit: int, data_limit_reset_strategy: str = 'month'):
+    async def get_all_user(self):
+        status, data = await self._request('get', f'{self.url}/api/users')
+        if status == 200:
+            return data
+        return None
+
+    async def update_user(self, username: str, expire: int, data_limit: int, tariff: str,
+                          data_limit_reset_strategy: str = 'month'):
         json_data = {
             "expire": expire,
             "data_limit": data_limit,
+            "note": tariff,
             "data_limit_reset_strategy": data_limit_reset_strategy
         }
         status, data = await self._request('put', f'{self.url}/api/user/{username}', json=json_data)

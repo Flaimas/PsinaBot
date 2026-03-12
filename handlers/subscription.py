@@ -108,8 +108,7 @@ async def cp_subscription(callback: CallbackQuery):
 
     if existing_order:
         builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="ОК, БРО БРО БРО, ЖДУ!", callback_data="wait_ok"))
-        builder.row(InlineKeyboardButton(text="Отмена", callback_data="wait_ok"))
+        builder.row(InlineKeyboardButton(text="Главное меню", callback_data="start"))
         await callback.message.edit_text("У вас уже есть оплаченный заказ, дождитесь подтверждения!",
                                          reply_markup= builder.as_markup()
                                          )
@@ -125,7 +124,7 @@ async def cp_subscription(callback: CallbackQuery):
                                     )
 
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Крутяк", callback_data=f"НИХУЯ_ТУТ_НЕТ"))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data=f"start"))
     await callback.message.edit_text(
         "Платеж принят в обработку, в скором времени ваша подписка станет активной!",
         reply_markup=builder.as_markup()

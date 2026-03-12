@@ -10,8 +10,14 @@ router = Router()
 async def start(message: Message):
     user_name = message.from_user.first_name
     user_id = message.from_user.id
-    sub_status = await check_sub(user_id)
-    icon_status = f'✅ Активна' if sub_status else f'❌ Не активна'
+    sub_status = await marzban_api.get_user_info(f'tg_{user_id}')
+    if sub_status is None:
+        icon_status = "Не приобретен"
+    else:
+        if sub_status['status'] == 'active':
+            icon_status = '✅ Активна'
+        else:
+            icon_status = f'❌ Не активна'
 
     await message.answer(
         **text_start_menu(user_name, user_id, icon_status, sub_status)
@@ -23,17 +29,18 @@ async def cb_start(callback: CallbackQuery):
 
     user_name = callback.from_user.first_name
     user_id = callback.from_user.id
-    sub_status = await check_sub(user_id)
-    icon_status = f'✅ Активна' if sub_status else f'❌ Не активна'
+    sub_status = await marzban_api.get_user_info(f'tg_{user_id}')
+    if sub_status is None:
+        icon_status = "Не приобретен"
+    else:
+        if sub_status['status'] == 'active':
+            icon_status = '✅ Активна'
+        else:
+            icon_status = f'❌ Не активна'
 
     await callback.message.edit_text(
         **text_start_menu(user_name, user_id, icon_status, sub_status)
     )
-
-async def check_sub(user_id):
-    if await marzban_api.check_user(f"tg_{user_id}"):
-        return True
-    return False
 
 def text_start_menu(user_name, user_id, icon_status, sub_status):
     img_url = "https://i.pinimg.com/736x/e0/10/3e/e0103eba76f37d3d765ca10babf9b34a.jpg"
@@ -54,7 +61,6 @@ def text_start_menu(user_name, user_id, icon_status, sub_status):
 
 def get_start_keyboard(sub_status):
     builder = InlineKeyboardBuilder()
-    print(type(sub_status), sub_status)
     if sub_status:
         builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data=f"menu_sub"))
     if not sub_status:

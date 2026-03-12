@@ -29,6 +29,14 @@ async def check_extend_order(user_id):
         )
         return await cursor.fetchone() # Вернет ID заказа или None
 
+async def check_order(user_id, status):
+    async with aiosqlite.connect('orders.db') as db:
+        cursor = await db.execute(
+            'SELECT id FROM orders WHERE user_id = ? AND status = ?',
+            (user_id, status)
+        )
+        return await cursor.fetchone() # Вернет ID заказа или None
+
 async def add_order(user_id, tariff, days):
     async with aiosqlite.connect('orders.db') as db:
         await db.execute(
