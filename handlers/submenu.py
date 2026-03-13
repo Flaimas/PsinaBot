@@ -21,8 +21,8 @@ async def menu_sub(callback: CallbackQuery):
             reply_markup=get_no_sub_menu() # кнопка "Купить"
         )
         return
-
-    days = days_left(user_info['expire'])
+    tariff = user_info.get('note')
+    days = days_left(user_info.get('expire'))
     if user_info["expire"] == 0:
         days = '∞'
     if days < 0:
@@ -38,11 +38,12 @@ async def menu_sub(callback: CallbackQuery):
         f"Дней осталось: {days}\n"
         f"Трафик: {traffic}</blockquote>"
     )
-    await callback.message.edit_text(text=text, reply_markup=get_sub_menu(), parse_mode="html")
+    await callback.message.edit_text(text=text, reply_markup=get_sub_menu(tariff), parse_mode="html")
 
-def get_sub_menu():
+def get_sub_menu(tariff):
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data='add_days'))
+    if tariff != 'TRIAL':
+        builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data='add_days'))
     builder.row(InlineKeyboardButton(text="Изменить тарифный план", callback_data='new_tariff'))
     builder.row(InlineKeyboardButton(text="Получить ссылку", callback_data='get_link'))
     builder.row(InlineKeyboardButton(text="Назад", callback_data='start'))

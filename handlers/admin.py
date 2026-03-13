@@ -6,7 +6,8 @@ from aiogram.types import Message, InlineKeyboardButton, CallbackQuery, CopyText
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import BOT_TOKEN, ADMIN_ID
 from marzban import marzban_api
-from database import add_order, create_db, get_order, check_pending_order, get_orders_list, db_delete_user, update_order_status
+from database import add_order, create_db, get_order, check_pending_order, get_orders_list, db_delete_user, \
+    update_order_status, set_notified
 from prices import PRICES
 
 router = Router()
@@ -135,12 +136,18 @@ async def update_extend(callback: CallbackQuery):
     order_id, user_id, tariff, days, status = order[0], order[1], order[2], order[3], order[4]
     username = f'tg_{user_id}'
     user_info = await marzban_api.get_user_info(username)
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data='menu_sub'))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+
     if user_info and order:
         time_now = int(datetime.now().timestamp())
         expire = user_info['expire'] if user_info['expire'] >= time_now else time_now
         expire = expire + (days * 24 * 60 * 60)
         data_limit = PRICES[tariff]['data_limit']
         if await marzban_api.update_user(username, expire, data_limit, tariff):
+            await set_notified(user_id, 0)
             text = {
                 'extend': 'Ваша подписка была продлена!',
                 'update': 'Ваша подписка была изменена!'
@@ -149,5 +156,6 @@ async def update_extend(callback: CallbackQuery):
             await update_order_status(int(order_id), 'issued')
             await callback.bot.send_message(
                 chat_id=user_id,  # ID того, кому летит ссылка
-                text=f"{user_message}"
+                text=f"{user_message}",
+                reply_markup=builder.as_markup()
             )

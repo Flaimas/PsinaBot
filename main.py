@@ -1,9 +1,7 @@
-from sched import scheduler
-
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from scheduler import check_vpn_expire
+from scheduler import check_vpn_expire, check_expire_users
 from handlers import admin, subscription, start, help, submenu, instructions
 from database import create_db
 from config import BOT_TOKEN
@@ -36,8 +34,11 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
 
     schedule = AsyncIOScheduler()
-    schedule.add_job(check_vpn_expire, 'interval', hours=12, args=[bot]) #основная база
+    schedule.add_job(check_vpn_expire, 'cron', hour=10, args=[bot]) #основная база
+    schedule.add_job(check_expire_users, 'interval', hours=6, args=[bot]) #база баз
+
     # schedule.add_job(check_vpn_expire, 'interval', seconds=10, args=[bot]) #Для тестов
+    # schedule.add_job(check_expire_users, 'interval', seconds=10, args=[bot]) #Для тестов
     schedule.start()
 
     await dp.start_polling(bot)

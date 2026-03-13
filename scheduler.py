@@ -3,6 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from marzban import marzban_api
 from datetime import datetime, timezone, timedelta
+from database import check_notification, set_notified
 
 async def check_vpn_expire(bot):
     data = await marzban_api.get_all_user()
@@ -15,7 +16,8 @@ async def check_vpn_expire(bot):
     for user in users:
         expire = user.get('expire')
         username = user.get('username')
-        if not expire or not username.startswith('tg_'):
+        status = user.get('status')
+        if not expire or not username.startswith('tg_') or status == 'expired':
             continue
         time_left = expire - now
         if 0 < time_left <= three_day:
@@ -41,3 +43,25 @@ async def check_vpn_expire(bot):
                 text=f"{text}\nПродлите её чтобы не потерять доступ.",
                 reply_markup=builder.as_markup()
             )
+
+async def check_expire_users(bot):
+    data = await marzban_api.get_all_user()
+    if not data:
+        return
+    users = data['users']
+    for user in users:
+        status = user.get('status')
+        username = user.get('username')
+        if not status or not username.startswith('tg_'):
+            continue
+        user_id = int(username.replace('tg_',''))
+        notification = await check_notification(user_id)
+        if status == 'expired' and notification:
+            builder = InlineKeyboardBuilder()
+            builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data="menu_sub"))
+            await bot.send_message(
+                chat_id=user_id,
+                text=f"Ваша подписка закончилась, доступ отключен.",
+                reply_markup=builder.as_markup()
+            )
+            await set_notified(user_id, 1)

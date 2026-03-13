@@ -44,12 +44,13 @@ class MarzbanAPI:
             return ''.join(data['links'])
         return f"Error: {status}!"
 
-    async def create_user(self, username, days, tariff, data_limit = 214748364800):
+    async def create_user(self, username: str, days: int, tariff: str, data_limit: int = 214748364800, status: str = "active"):
         utc_days = self.get_expire_timestamp(days)
         data = {
             'username': username,
             'expire': utc_days,
             'data_limit': data_limit,
+            'status': status,
             "data_limit_reset_strategy": "month",
             'note': tariff,
             'proxies': {

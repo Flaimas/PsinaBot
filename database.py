@@ -1,3 +1,5 @@
+from os.path import curdir
+
 import aiosqlite
 
 async def create_db():
@@ -11,6 +13,49 @@ async def create_db():
                 status TEXT DEFAULT 'pending'
             )
         ''')
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS notifications (
+                user_id INTEGER UNIQUE,
+                notification INTEGER DEFAULT 0
+            )
+        ''')
+        await db.execute('''
+                    CREATE TABLE IF NOT EXISTS trials (
+                        user_id INTEGER UNIQUE
+                    )
+                ''')
+        await db.commit()
+
+# async def check_trial(user_id):
+#     async with aiosqlite.connect('orders.db') as db:
+#         cursor = await db.execute(
+#             'SELECT user_id FROM trials WHERE user_id = ?',
+#             (user_id,)
+#         )
+#         return await cursor.fetchone()
+#
+# async def add_trial(user_id):
+#     async with aiosqlite.connect('orders.db') as db:
+#         await db.execute(
+#             'INSERT INTO trials (user_id) VALUES (?)',
+#             (user_id,)
+#         )
+#         await db.commit()
+
+async def check_notification(user_id):
+    async with aiosqlite.connect('orders.db') as db:
+        cursor = await db.execute(
+            'SELECT user_id FROM notifications WHERE notification = 0 AND user_id = ?',
+            (user_id,)
+        )
+        return await cursor.fetchone()
+
+async def set_notified(user_id, notification):
+    async with aiosqlite.connect('orders.db') as db:
+        await db.execute(
+            'INSERT OR REPLACE INTO notifications (user_id, notification) VALUES (?, ?)',
+            (user_id, notification)
+        )
         await db.commit()
 
 async def check_pending_order(user_id):

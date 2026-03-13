@@ -2,6 +2,8 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from handlers.admin import give_subscription
 from marzban import marzban_api
 
 router = Router()
@@ -64,8 +66,38 @@ def get_start_keyboard(sub_status):
     if sub_status:
         builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data=f"menu_sub"))
     if not sub_status:
+        builder.row(InlineKeyboardButton(text="Пробная подписка на 3 дня", callback_data=f"menu_trial"))
         builder.row(InlineKeyboardButton(text="Купить VPN", callback_data=f"vpn_start"))
 
     builder.row(InlineKeyboardButton(text="Инструкции", callback_data="instruction"))
     builder.row(InlineKeyboardButton(text="Помощь", callback_data="help"))
     return builder.as_markup()
+
+@router.callback_query(F.data == 'menu_trial')
+async def menu_trial(callback: CallbackQuery):
+    await callback.answer()
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Активировать пробную подписку", callback_data='trial_subscription'))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+    await callback.message.edit_text(text="Вы можете активировать пробную подписку на 3 дня\n"
+                                          "что бы опробовать наш сервис, после истечения срока\n"
+                                          "просто продлите её в личном кабинете", parse_mode="HTML", reply_markup=builder.as_markup())
+
+@router.callback_query(F.data == 'trial_subscription')
+async def trial_subscription(callback: CallbackQuery):
+    await callback.answer()
+    user_id = callback.from_user.id
+    user_name = f'tg_{user_id}'
+    data = await marzban_api.get_user_info(user_name)
+    if not data:
+        await marzban_api.create_user(user_name, 3, 'TRIAL', 7158278826)
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Получить ссылку", callback_data='get_link'))
+        await callback.message.edit_text(text="Пробная подписка активирована!", parse_mode="HTML",
+                                         reply_markup=builder.as_markup())
+        return
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+    await callback.message.edit_text(text="Вы уже использовали пробный период!", parse_mode="HTML",
+                                     reply_markup=builder.as_markup())
