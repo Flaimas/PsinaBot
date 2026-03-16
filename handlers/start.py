@@ -2,8 +2,6 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
-from handlers.admin import give_subscription
 from marzban import marzban_api
 
 router = Router()

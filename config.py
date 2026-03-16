@@ -10,3 +10,4 @@ SUPPORT_URL = os.getenv("SUPPORT_URL")
 MARZBAN_URL = os.getenv("MARZBAN_URL") #url site
 MARZBAN_USERNAME = os.getenv("MARZBAN_USERNAME")
 MARZBAN_PASSWORD = os.getenv("MARZBAN_PASSWORD")
+DB_PATH = 'orders.db'

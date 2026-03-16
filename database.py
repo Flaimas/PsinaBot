@@ -1,6 +1,5 @@
 import aiosqlite
-
-DB_PATH = 'orders.db'
+from config import DB_PATH
 
 async def create_db():
     async with get_db() as db:
@@ -28,22 +27,6 @@ async def create_db():
 
 async def get_db():
     return aiosqlite.connect(DB_PATH)
-
-# async def check_trial(user_id):
-#     async with aiosqlite.connect('orders.db') as db:
-#         cursor = await db.execute(
-#             'SELECT user_id FROM trials WHERE user_id = ?',
-#             (user_id,)
-#         )
-#         return await cursor.fetchone()
-#
-# async def add_trial(user_id):
-#     async with aiosqlite.connect('orders.db') as db:
-#         await db.execute(
-#             'INSERT INTO trials (user_id) VALUES (?)',
-#             (user_id,)
-#         )
-#         await db.commit()
 
 async def check_notification(user_id):
     async with get_db() as db:
