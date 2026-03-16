@@ -62,8 +62,8 @@ class MarzbanAPI:
                 'vless': ['VLESS TCP TLS']
             }
         }
-        status, data = await self._request('post', f'{self.url}/api/user', json=data)
-        if status == 200:
+        resp_status, data = await self._request('post', f'{self.url}/api/user', json=data)
+        if resp_status == 200:
             return True
         else:
             return False

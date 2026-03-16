@@ -4,11 +4,14 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from scheduler import check_vpn_expire, check_expire_users
 from handlers import admin, subscription, start, help, submenu, instructions
 from database import create_db
-from config import BOT_TOKEN
+from config import BOT_TOKEN, PROXY_URL
 from marzban import marzban_api
 import asyncio
 
-bot = Bot(token=BOT_TOKEN)
+from aiogram.client.session.aiohttp import AiohttpSession
+
+session = AiohttpSession(proxy=PROXY_URL) if PROXY_URL else None
+bot = Bot(token=BOT_TOKEN, session=session)  # порт твоего VPN
 dp = Dispatcher()
 
 dp.include_router(start.router)

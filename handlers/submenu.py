@@ -22,11 +22,12 @@ async def menu_sub(callback: CallbackQuery):
         )
         return
     tariff = user_info.get('note')
-    days = days_left(user_info.get('expire'))
-    if user_info["expire"] == 0:
+    expire = user_info.get("expire")
+
+    if not expire:  # None или 0
         days = '∞'
-    if days < 0:
-        days = 0
+    else:
+        days = max(0, days_left(expire))
 
     sub_status = 'Активна' if (user_info['status'] == "active") else "Не активна" #всего два положения, временный костыль, нужно будет создать функцию
     traffic = traffic_left(user_info["data_limit"], user_info['used_traffic'])
