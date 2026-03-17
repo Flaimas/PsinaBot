@@ -17,7 +17,9 @@ def traffic_left(limit_traffic, used_traffic):
     used_gb = round((used_traffic or 0) / 1024 / 1024 / 1024, 1)
     return f'{used_gb} / {limit_gb} ГБ'
 
-def convert_to_expire(day):
-    time_now = datetime.now(timezone.utc)
-    plus_day = timedelta(days=day)
-    return int((time_now + plus_day).timestamp())
+SUB_STATUS = {
+     'active': '🔥 Активна',
+    'expired': '❌ Не активна',
+    'limited': '😭 Трафик закончился',
+         None: '💀 Не приобретена'
+}

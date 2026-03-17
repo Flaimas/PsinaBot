@@ -1,11 +1,12 @@
 from aiogram import Router, F
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardButton, CallbackQuery, CopyTextButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from config import ADMIN_ID
+from config import ADMIN_ID, MANUAL_PAYMENT
 from database import add_expire_order, check_extend_order, check_order
 from marzban import marzban_api
 from payment import create_payment
-from utils import days_left, traffic_left
+from utils import days_left, traffic_left, SUB_STATUS
 from prices import PRICES
 
 router = Router()
@@ -29,12 +30,13 @@ async def menu_sub(callback: CallbackQuery):
     else:
         days = max(0, days_left(expire))
 
-    sub_status = 'Активна' if (user_info['status'] == "active") else "Не активна" #всего два положения, временный костыль, нужно будет создать функцию
     traffic = traffic_left(user_info["data_limit"], user_info['used_traffic'])
+    status = user_info.get('status')  # всего два положения, временный костыль, нужно будет создать функцию
+    sub_status = SUB_STATUS.get(status, None)
 
     text = (
         f"Подписка {user_info['note']}!\n"
-        f"<blockquote>Ваш ID: {callback.from_user.id}\n"
+        f"<blockquote>Ваш ID: <code>{callback.from_user.id}</code>\n"
         f"Статус подписки: {sub_status}\n"
         f"Дней осталось: {days}\n"
         f"Трафик: {traffic}</blockquote>"
@@ -43,17 +45,20 @@ async def menu_sub(callback: CallbackQuery):
 
 def get_sub_menu(tariff):
     builder = InlineKeyboardBuilder()
-    if tariff != 'TRIAL':
-        builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data='add_days'))
-    builder.row(InlineKeyboardButton(text="Изменить тарифный план", callback_data='new_tariff'))
+    if tariff == 'TRIAL':
+        builder.row(InlineKeyboardButton(text="Изменить тариф", callback_data='new_tariff'))
+    else:
+        builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data='add_days'),
+                    InlineKeyboardButton(text="Изменить тарифный план", callback_data='new_tariff'))
+
     builder.row(InlineKeyboardButton(text="Получить ссылку", callback_data='get_link'))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data='start'))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
     return builder.as_markup()
 
 def get_no_sub_menu():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Купить VPN", callback_data='vpn_start'))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data='start'))
+    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data='start'))
     return builder.as_markup()
 
 
@@ -80,7 +85,7 @@ def get_price_subscription(tariff):
     builder.row(InlineKeyboardButton(text=f"3 месяца - {PRICES[tariff]['90']} ₽", callback_data=f"extend_{tariff}_90"))
     builder.row(InlineKeyboardButton(text=f"6 месяцев - {PRICES[tariff]['180']} ₽", callback_data=f"extend_{tariff}_180"))
     builder.row(InlineKeyboardButton(text=f"12 месяцев - {PRICES[tariff]['360']} ₽", callback_data=f"extend_{tariff}_360"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"menu_sub"))
+    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"menu_sub"))
     return builder.as_markup()
 
 @router.callback_query(F.data.startswith("extend_"))
@@ -91,7 +96,7 @@ async def extend_sub(callback: CallbackQuery):
 
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Оплатить", callback_data=f"es_{tariff}_{days}"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data="add_days"))
+    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data="add_days"))
 
     await callback.message.edit_text(
         text=f"Продлить подписку {tariff} на {days} дней?\n"
@@ -103,17 +108,31 @@ async def extend_sub(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("es_"))
 async def change_sub_pay(callback: CallbackQuery):
     await callback.answer()
+
     id_user = callback.from_user.id
     parts = callback.data.split("_")
     tariff, day = parts[1], int(parts[2])
 
-    await create_payment(callback.bot, id_user, tariff, day) #создание платежа
+    if MANUAL_PAYMENT:
+        tariff = callback.data.split("_")[1]
+        days = callback.data.split('_')[2]
 
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f"PAY_EXTEND_{tariff}_{day}"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"extend_{tariff}_{day}"))
-
-    await callback.message.edit_text(text="Тестируем че будет")
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f'cp_{callback.from_user.id}_{tariff}_{days}'))
+        builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"time_{tariff}_{days}"))
+        await callback.message.edit_text(
+            f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
+            f"\n"
+            f"Подписка {tariff} - {days} дней.\n"
+            f"К оплате: {PRICES[tariff][days]} ₽",
+            reply_markup=builder.as_markup()
+        )
+    else:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await create_payment(callback.bot, id_user, tariff, day)  # создание платежа
 
 @router.callback_query(F.data.startswith("PAY_EXTEND_"))
 async def pay_changed(callback: CallbackQuery):
@@ -152,7 +171,7 @@ def get_change_subscription():
     builder.row(InlineKeyboardButton(text="STANDART (3 устр.)", callback_data="change_sub_STANDART"))
     builder.row(InlineKeyboardButton(text='GO (5 устр.)', callback_data="change_sub_GO"))
     builder.row(InlineKeyboardButton(text='PRO (9 устр.)', callback_data="change_sub_PRO"))
-    builder.row(InlineKeyboardButton(text='Назад', callback_data="menu_sub"))
+    builder.row(InlineKeyboardButton(text='⤿ Назад', callback_data="menu_sub"))
     return builder.as_markup()
 
 @router.callback_query(F.data.startswith("change_sub_"))
@@ -168,7 +187,7 @@ def get_ch_tariff(tariff):
     builder.row(InlineKeyboardButton(text=f"3 месяца - {PRICES[tariff]['90']} ₽", callback_data=f"ch_{tariff}_90"))
     builder.row(InlineKeyboardButton(text=f"6 месяцев - {PRICES[tariff]['180']} ₽", callback_data=f"ch_{tariff}_180"))
     builder.row(InlineKeyboardButton(text=f"12 месяцев - {PRICES[tariff]['360']} ₽", callback_data=f"ch_{tariff}_360"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"menu_sub"))
+    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"menu_sub"))
     return builder.as_markup()
 
 @router.callback_query(F.data.startswith("ch_"))
@@ -179,7 +198,7 @@ async def ch_sub(callback: CallbackQuery):
 
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Оплатить", callback_data=f"nt_{tariff}_{days}"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"change_sub_{tariff}"))
+    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"change_sub_{tariff}"))
 
     await callback.message.edit_text(
         text=f"Изменение подписки на {tariff} - {days} дней?\n"
@@ -190,20 +209,27 @@ async def ch_sub(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("nt_"))
 async def extend_sub_pay(callback: CallbackQuery):
     await callback.answer()
-    tariff = callback.data.split("_")[1]
-    days = callback.data.split("_")[2]
+    id_user = callback.from_user.id
+    parts = callback.data.split("_")
+    tariff, day = parts[1], int(parts[2])
+    if MANUAL_PAYMENT:
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f"PAY_CHANGE_{tariff}_{day}"))
+        builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"ch_{tariff}_{day}"))
 
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f"PAY_CHANGE_{tariff}_{days}"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"ch_{tariff}_{days}"))
-
-    await callback.message.edit_text(
-        f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
-        f"\n"
-        f"Изменение подписки на {tariff} - {days} дней.\n"
-        f"К оплате: {PRICES[tariff][days]} ₽",
-        reply_markup=builder.as_markup()
+        await callback.message.edit_text(
+            f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
+            f"\n"
+            f"Изменение подписки на {tariff} - {day} дней.\n"
+            f"К оплате: {PRICES.get(tariff, {}).get(str(day))} ₽",
+            reply_markup=builder.as_markup()
         )
+    else:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await create_payment(callback.bot, id_user, tariff, day)  # создание платежа
 
 @router.callback_query(F.data.startswith("PAY_CHANGE_"))
 async def pay_extended(callback: CallbackQuery):
@@ -230,12 +256,17 @@ async def pay_extended(callback: CallbackQuery):
 async def get_lik(callback: CallbackQuery):
     await callback.answer()
     user_name = f'tg_{callback.from_user.id}'
-    v2ray_link = await marzban_api.get_user_link(user_name)
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Копировать ссылку", copy_text=CopyTextButton(text=v2ray_link)))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data='menu_sub'))
+    user_data = await marzban_api.get_user_info(user_name)
+    sub_link = user_data.get('subscription_url')
+    if sub_link:
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Копировать ссылку", copy_text=CopyTextButton(text=sub_link)))
+        builder.row(InlineKeyboardButton(text="Как подключиться?", callback_data='instruction'))
+        builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data='menu_sub'))
 
-    await callback.message.edit_text(text=f"Ваша ссылка для подключения:\n"
-                                          f"<code>{v2ray_link}</code>",
-                                     parse_mode='HTML',
-                                     reply_markup=builder.as_markup())
+        await callback.message.edit_text(text=f"Ваша ссылка для подключения 👇\n"
+                                              f"(нажмите на нее, что бы скопировать)\n"
+                                              f"\n"
+                                              f"<code>{sub_link}</code>",
+                                         parse_mode='HTML',
+                                         reply_markup=builder.as_markup())

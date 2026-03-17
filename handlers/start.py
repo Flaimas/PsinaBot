@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from marzban import marzban_api
+from utils import SUB_STATUS
 
 router = Router()
 
@@ -10,17 +11,12 @@ router = Router()
 async def start(message: Message):
     user_name = message.from_user.first_name
     user_id = message.from_user.id
-    sub_status = await marzban_api.get_user_info(f'tg_{user_id}')
-    if sub_status is None:
-        icon_status = "Не приобретен"
-    else:
-        if sub_status['status'] == 'active':
-            icon_status = '✅ Активна'
-        else:
-            icon_status = f'❌ Не активна'
+    user_data = await marzban_api.get_user_info(f'tg_{user_id}')
+    status = user_data.get('status')
+    sub_status = SUB_STATUS.get(status)
 
     await message.answer(
-        **text_start_menu(user_name, user_id, icon_status, sub_status)
+        **text_start_menu(user_name, user_id, sub_status, status)
     )
 
 @router.callback_query(F.data == "start")
@@ -29,17 +25,12 @@ async def cb_start(callback: CallbackQuery):
 
     user_name = callback.from_user.first_name
     user_id = callback.from_user.id
-    sub_status = await marzban_api.get_user_info(f'tg_{user_id}')
-    if sub_status is None:
-        icon_status = "Не приобретен"
-    else:
-        if sub_status['status'] == 'active':
-            icon_status = '✅ Активна'
-        else:
-            icon_status = f'❌ Не активна'
+    user_data = await marzban_api.get_user_info(f'tg_{user_id}')
+    status = user_data.get('status')
+    sub_status = SUB_STATUS.get(status, None)
 
     await callback.message.edit_text(
-        **text_start_menu(user_name, user_id, icon_status, sub_status)
+        **text_start_menu(user_name, user_id, sub_status, status)
     )
 
 def text_start_menu(user_name, user_id, icon_status, sub_status):
@@ -49,8 +40,8 @@ def text_start_menu(user_name, user_id, icon_status, sub_status):
     text = (
         f"{hidden_link}"
         f"Привет, {user_name}!\n"
-        f"<blockquote>Ваш ID: {user_id}\n"
-        f"Статус VPN: {icon_status}</blockquote>"
+        f"<blockquote>Ваш ID: <code>{user_id}</code>\n"
+        f"Статус подписки: {icon_status}</blockquote>"
     )
     # Возвращаем словарь со всеми аргументами
     return {

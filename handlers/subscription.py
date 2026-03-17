@@ -1,7 +1,8 @@
 from aiogram import Router, F
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from config import ADMIN_ID
+from config import ADMIN_ID, MANUAL_PAYMENT
 from database import add_order, check_pending_order
 from marzban import marzban_api
 from prices import PRICES
@@ -82,10 +83,28 @@ async def time_subscription(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("pay_"))
 async def pay_subscription(callback: CallbackQuery):
     await callback.answer()
+
     id_user = callback.from_user.id
     parts = callback.data.split("_")
     tariff, day = parts[1], int(parts[2])
-    await create_payment(callback.bot, id_user, tariff, day)  # создание платежа
+
+    if MANUAL_PAYMENT:
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f'cp_{callback.from_user.id}_{tariff}_{day}'))
+        builder.row(InlineKeyboardButton(text="Назад", callback_data=f"time_{tariff}_{day}"))
+        await callback.message.edit_text(
+            f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
+            f"\n"
+            f"Подписка {tariff} - {day} дней.\n"
+            f"К оплате: {PRICES[tariff][day]} ₽",
+            reply_markup=builder.as_markup()
+        )
+    else:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            pass
+        await create_payment(callback.bot, id_user, tariff, day)  # создание платежа
 
 @router.callback_query(F.data.startswith("cp_"))
 async def cp_subscription(callback: CallbackQuery):
@@ -105,7 +124,7 @@ async def cp_subscription(callback: CallbackQuery):
                                          )
         return
 
-    await add_order(user_id, tariff, days)#добавление заказа в БД
+    await add_order(user_id, tariff, days) #добавление заказа в БД
 
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Перейти к списку", callback_data=f"admin_order_list"))

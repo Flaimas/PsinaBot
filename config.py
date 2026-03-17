@@ -15,3 +15,5 @@ PAYMENT_TOKEN = os.getenv("PAYMENT_TOKEN")
 
 DB_PATH = 'orders.db'
 PROXY_URL = 'http://127.0.0.1:10808'
+
+MANUAL_PAYMENT=False #РУЧНАЯ ОПЛАТА

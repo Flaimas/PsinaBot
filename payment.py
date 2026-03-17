@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from aiogram import Router, F
-from aiogram.types import PreCheckoutQuery, Message
+from aiogram.types import PreCheckoutQuery, Message, InlineKeyboardButton
 from aiogram.types import LabeledPrice
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from config import PAYMENT_TOKEN
 from prices import PRICES
 from marzban import marzban_api
@@ -22,7 +24,7 @@ async def create_payment(bot, user_id: int, tariff: str, day: int):
 
         await bot.send_invoice(
             chat_id=user_id,
-            title=f"Оплата: {tariff.upper()}",
+            title=f"Оплата: {tariff.upper()} - {day} дней",
             description=description,
             payload=payload,
             provider_token=PAYMENT_TOKEN,
@@ -62,6 +64,15 @@ async def successful_payment(message: Message):
         success = await marzban_api.create_user(user_id, day, tariff, data_limit, 'active')
 
     if success:
-        await message.answer(f"Подписка {tariff} успешно активирована/продлена на {day} дней!")
+
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data='menu_sub'))
+        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+
+        await message.answer(f"Подписка {tariff} успешно активирована/продлена на {day} дней!", reply_markup=builder.as_markup())
     else:
-        await message.answer("Произошла ошибка при связи с сервером VPN. Свяжитесь с поддержкой.")
+
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Поддержка", callback_data='help'))
+
+        await message.answer("Произошла ошибка при связи с сервером VPN. Свяжитесь с поддержкой.", reply_markup=builder.as_markup())
