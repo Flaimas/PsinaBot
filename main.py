@@ -7,6 +7,7 @@ from database import create_db
 from config import BOT_TOKEN, PROXY_URL
 from marzban import marzban_api
 import asyncio
+import payment
 
 from aiogram.client.session.aiohttp import AiohttpSession
 
@@ -20,6 +21,7 @@ dp.include_router(admin.router)
 dp.include_router(help.router)
 dp.include_router(submenu.router)
 dp.include_router(instructions.router)
+dp.include_router(payment.router)
 
 async def set_commands(bot_: Bot):
     commands = [

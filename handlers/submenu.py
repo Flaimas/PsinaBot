@@ -1,11 +1,11 @@
 from aiogram import Router, F
 from aiogram.types import InlineKeyboardButton, CallbackQuery, CopyTextButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
 from config import ADMIN_ID
 from database import add_expire_order, check_extend_order, check_order
 from marzban import marzban_api
-from datetime import datetime, timezone
+from payment import create_payment
+from utils import days_left, traffic_left
 from prices import PRICES
 
 router = Router()
@@ -103,20 +103,17 @@ async def extend_sub(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("es_"))
 async def change_sub_pay(callback: CallbackQuery):
     await callback.answer()
-    tariff = callback.data.split("_")[1]
-    days = callback.data.split("_")[2]
+    id_user = callback.from_user.id
+    parts = callback.data.split("_")
+    tariff, day = parts[1], int(parts[2])
+
+    await create_payment(callback.bot, id_user, tariff, day) #создание платежа
 
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f"PAY_EXTEND_{tariff}_{days}"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"extend_{tariff}_{days}"))
+    builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f"PAY_EXTEND_{tariff}_{day}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"extend_{tariff}_{day}"))
 
-    await callback.message.edit_text(
-        f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
-        f"\n"
-        f"Продлить {tariff} на {days} дней.\n"
-        f"К оплате: {PRICES[tariff][days]} ₽",
-        reply_markup=builder.as_markup()
-        )
+    await callback.message.edit_text(text="Тестируем че будет")
 
 @router.callback_query(F.data.startswith("PAY_EXTEND_"))
 async def pay_changed(callback: CallbackQuery):
@@ -242,19 +239,3 @@ async def get_lik(callback: CallbackQuery):
                                           f"<code>{v2ray_link}</code>",
                                      parse_mode='HTML',
                                      reply_markup=builder.as_markup())
-
-def days_left(expire_timestamp):
-    # Переводим timestamp в дату
-    expire_date = datetime.fromtimestamp(expire_timestamp, tz=timezone.utc)
-    # Берём сегодняшнюю дату
-    now = datetime.now(timezone.utc)
-    # Вычитаем и берём только дни
-    delta = expire_date - now
-    return delta.days
-
-def traffic_left(limit_traffic, used_traffic):
-    if limit_traffic is None or used_traffic is None:
-        return '∞'
-    limit_gb = round(limit_traffic / 1024 / 1024 / 1024, 1)
-    used_gb = round((used_traffic or 0) / 1024 / 1024 / 1024, 1)
-    return f'{used_gb} / {limit_gb} ГБ'

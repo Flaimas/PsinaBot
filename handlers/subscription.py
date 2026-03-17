@@ -5,6 +5,7 @@ from config import ADMIN_ID
 from database import add_order, check_pending_order
 from marzban import marzban_api
 from prices import PRICES
+from payment import create_payment
 
 router = Router()
 
@@ -81,20 +82,10 @@ async def time_subscription(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("pay_"))
 async def pay_subscription(callback: CallbackQuery):
     await callback.answer()
-
-    tariff = callback.data.split("_")[1]
-    days = callback.data.split('_')[2]
-
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f'cp_{callback.from_user.id}_{tariff}_{days}'))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"time_{tariff}_{days}"))
-    await callback.message.edit_text(
-        f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
-        f"\n"
-        f"Подписка {tariff} - {days} дней.\n"
-        f"К оплате: {PRICES[tariff][days]} ₽",
-        reply_markup=builder.as_markup()
-                                     )
+    id_user = callback.from_user.id
+    parts = callback.data.split("_")
+    tariff, day = parts[1], int(parts[2])
+    await create_payment(callback.bot, id_user, tariff, day)  # создание платежа
 
 @router.callback_query(F.data.startswith("cp_"))
 async def cp_subscription(callback: CallbackQuery):
