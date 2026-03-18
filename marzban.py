@@ -1,8 +1,6 @@
 import aiohttp
 from config import MARZBAN_URL, MARZBAN_USERNAME, MARZBAN_PASSWORD
 from datetime import datetime, timedelta, timezone
-from prices import PRICES
-
 
 class MarzbanAPI:
     def __init__(self, url, username, password):

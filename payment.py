@@ -54,7 +54,7 @@ async def successful_payment(message: Message):
     if user_data:
         status = user_data.get('status')
         current_expire = user_data.get('expire') or now_ts
-        if status in ('expired', 'active'):
+        if status in ('expired', 'active', 'limited'):
             if status == 'expired' or current_expire < now_ts:
                 new_expire = now_ts + (day * 24 * 60 * 60)
             else:

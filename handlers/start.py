@@ -12,7 +12,10 @@ async def start(message: Message):
     user_name = message.from_user.first_name
     user_id = message.from_user.id
     user_data = await marzban_api.get_user_info(f'tg_{user_id}')
-    status = user_data.get('status')
+    if user_data:
+        status = user_data.get('status')
+    else:
+        status = None
     sub_status = SUB_STATUS.get(status)
 
     await message.answer(
@@ -26,8 +29,11 @@ async def cb_start(callback: CallbackQuery):
     user_name = callback.from_user.first_name
     user_id = callback.from_user.id
     user_data = await marzban_api.get_user_info(f'tg_{user_id}')
-    status = user_data.get('status')
-    sub_status = SUB_STATUS.get(status, None)
+    if user_data:
+        status = user_data.get('status')
+    else:
+        status = None
+    sub_status = SUB_STATUS.get(status)
 
     await callback.message.edit_text(
         **text_start_menu(user_name, user_id, sub_status, status)

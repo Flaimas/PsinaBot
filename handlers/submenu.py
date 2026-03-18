@@ -49,7 +49,7 @@ def get_sub_menu(tariff):
         builder.row(InlineKeyboardButton(text="Изменить тариф", callback_data='new_tariff'))
     else:
         builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data='add_days'),
-                    InlineKeyboardButton(text="Изменить тарифный план", callback_data='new_tariff'))
+                    InlineKeyboardButton(text="Изменить тариф", callback_data='new_tariff'))
 
     builder.row(InlineKeyboardButton(text="Получить ссылку", callback_data='get_link'))
     builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
@@ -160,9 +160,23 @@ async def new_tariff(callback: CallbackQuery):
     await callback.answer()
     user_id = f"tg_{callback.from_user.id}"
     user_info = await marzban_api.get_user_info(user_id)
+
+    if user_info.get('status') != 'extend' and user_info.get('note') != 'TRIAL':
+        builder = InlineKeyboardBuilder().row(InlineKeyboardButton(text="Помощь", callback_data='help'), InlineKeyboardButton(text="Понятно", callback_data='start'))
+        await callback.message.edit_text(text="<blockquote>Внимание‼️\n"
+                                              "Изменить тариф можно только после окончания текущего!\n"
+                                              "\nЛибо обратитесь за помощью в поддержку.</blockquote>", reply_markup=builder.as_markup(), parse_mode="HTML")
+        return
+
     if user_info:
         tariff = user_info['note'] if user_info is not None else False
-        await callback.message.edit_text(text=f'Выберите подписку, ваша текущая {tariff}', reply_markup=get_change_subscription())
+        await callback.message.edit_text(text=f'Выберите подписку, ваша текущая {tariff}\n'
+                                              f'<blockquote><b>STANDART</b> — базовый тариф для личного использования. До 3 устройств, 200 ГБ трафика в месяц.\n'
+                                              f'\n'
+                                              f'<b>GO</b> — оптимальный выбор для активных пользователей. До 5 устройств, 400 ГБ трафика в месяц.\n'
+                                              f'\n'
+                                              f'<b>PRO</b> — максимальный тариф для интенсивного использования. До 9 устройств, 800 ГБ трафика в месяц.</blockquote>',
+                                         reply_markup=get_change_subscription(), parse_mode='HTML')
         return
     await callback.message.edit_text(text='Пользователь не найден :(', reply_markup=get_no_sub_menu())
 
