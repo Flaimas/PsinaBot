@@ -78,14 +78,36 @@ async def add_days(callback: CallbackQuery):
         reply_markup=get_price_subscription(tariff)
     )
 
+
 def get_price_subscription(tariff):
     tariff = str(tariff)
+    # Базовая цена за 30 дней, чтобы от неё считать выгоду
+    base_price_30 = PRICES[tariff]['30']
+
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=f"1 месяц - {PRICES[tariff]['30']} ₽", callback_data=f"extend_{tariff}_30"))
-    builder.row(InlineKeyboardButton(text=f"3 месяца - {PRICES[tariff]['90']} ₽", callback_data=f"extend_{tariff}_90"))
-    builder.row(InlineKeyboardButton(text=f"6 месяцев - {PRICES[tariff]['180']} ₽", callback_data=f"extend_{tariff}_180"))
-    builder.row(InlineKeyboardButton(text=f"12 месяцев - {PRICES[tariff]['360']} ₽", callback_data=f"extend_{tariff}_360"))
-    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"menu_sub"))
+
+    periods = [
+        ("1 месяц", "30", 1),
+        ("3 месяца", "90", 3),
+        ("6 месяцев", "180", 6),
+        ("12 месяцев", "360", 12)
+    ]
+
+    for text, days, month_count in periods:
+        current_price = PRICES[tariff][days]
+
+        # Считаем выгоду: (1 - (цена_периода / (цена_за_месяц * кол_во_месяцев))) * 100
+        # Пример для 3 месяцев: (1 - (429 / (149 * 3))) * 100 = 4%
+        discount = int((1 - (current_price / (base_price_30 * month_count))) * 100)
+
+        discount_str = f" (-{discount}%)" if discount > 0 else ""
+
+        builder.row(InlineKeyboardButton(
+            text=f"{text} - {current_price} ₽{discount_str}",
+            callback_data=f"extend_{tariff}_{days}"
+        ))
+
+    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data="menu_sub"))
     return builder.as_markup()
 
 @router.callback_query(F.data.startswith("extend_"))
@@ -196,12 +218,33 @@ async def change_sub(callback: CallbackQuery):
 
 def get_ch_tariff(tariff):
     tariff = str(tariff)
+    # Базовая цена за 30 дней, чтобы от неё считать выгоду
+    base_price_30 = PRICES[tariff]['30']
+
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=f"1 месяц - {PRICES[tariff]['30']} ₽", callback_data=f"ch_{tariff}_30"))
-    builder.row(InlineKeyboardButton(text=f"3 месяца - {PRICES[tariff]['90']} ₽", callback_data=f"ch_{tariff}_90"))
-    builder.row(InlineKeyboardButton(text=f"6 месяцев - {PRICES[tariff]['180']} ₽", callback_data=f"ch_{tariff}_180"))
-    builder.row(InlineKeyboardButton(text=f"12 месяцев - {PRICES[tariff]['360']} ₽", callback_data=f"ch_{tariff}_360"))
-    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"menu_sub"))
+
+    periods = [
+        ("1 месяц", "30", 1),
+        ("3 месяца", "90", 3),
+        ("6 месяцев", "180", 6),
+        ("12 месяцев", "360", 12)
+    ]
+
+    for text, days, month_count in periods:
+        current_price = PRICES[tariff][days]
+
+        # Считаем выгоду: (1 - (цена_периода / (цена_за_месяц * кол_во_месяцев))) * 100
+        # Пример для 3 месяцев: (1 - (429 / (149 * 3))) * 100 = 4%
+        discount = int((1 - (current_price / (base_price_30 * month_count))) * 100)
+
+        discount_str = f" (-{discount}%)" if discount > 0 else ""
+
+        builder.row(InlineKeyboardButton(
+            text=f"{text} - {current_price} ₽{discount_str}",
+            callback_data=f"ch_{tariff}_{days}"
+        ))
+
+    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data="menu_sub"))
     return builder.as_markup()
 
 @router.callback_query(F.data.startswith("ch_"))
