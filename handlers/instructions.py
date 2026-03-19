@@ -31,7 +31,7 @@ INSTRUCTIONS = {
     "android": """
 <b>Настройка VPN на Android</b>\n
 1. Скачай приложение <a href="https://play.google.com/store/apps/details?id=com.v2raytun.android">v2RayTun</a> из GooglePlay\n
-    1.1 Если GooglePlay не доступен <a href="https://github.com/DigneZzZ/v2raytun/releases/download/5.19.64/v2RayTun_universal.apk">v2RayTun</a> с GitHub.com\n
+    1.1 Если GooglePlay не доступен <a href="https://github.com/DigneZzZ/v2raytun/releases/download/5.19.64/v2RayTun_universal.apk">v2RayTun</a> с GitHub\n
 2. Нажми <b>"+"</b> в правом верхнем углу\n
 3. Выбери <b>"Импорт из буфера обмена"</b>\n
 4. Вставь свою ссылку\n
@@ -40,7 +40,7 @@ INSTRUCTIONS = {
 
     "windows": """
 <b>Настройка VPN на Windows</b>\n
-1. Скачай <a href="https://github.com/hiddify/hiddify-app/releases/download/v4.1.1/Hiddify-Windows-Portable-x64.zip">Hiddify</a> с GitHub.com\n
+1. Скачай <a href="https://github.com/Happ-proxy/happ-desktop/releases/latest/download/setup-Happ.x64.exe">Happ</a> с GitHub\n
 2. Нажми <b>"+" → "Буфер обмена"</b>\n
 3. Вставь свою ссылку\n
 4. Нажми <b>"Подключить"</b>\n

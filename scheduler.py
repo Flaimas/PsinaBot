@@ -31,16 +31,19 @@ async def check_vpn_expire(bot):
 
             if days > 0:
                 word = "день" if days == 1 else "дня" if 2 <= days <= 4 else "дней"
-                text = f"⚠️ Ваша подписка истекает через {days} {word}!"
+                text = f"⚠️ Ваша подписка истекает через {days} {word}! ⚠️"
             elif hours > 0:
                 word = "час" if hours == 1 else "часа" if 2 <= hours <= 4 else "часов"
-                text = f"⚠️ Ваша подписка истекает через {hours} {word}!"
+                text = f"⚠️ Ваша подписка истекает через {hours} {word}! ⚠️"
             else:
                 continue
 
             await bot.send_message(
                 chat_id=user_id,
-                text=f"{text}\nПродлите её чтобы не потерять доступ.",
+                text=f"{text}\n"
+                     f"\n"
+                     f"Не хотите потерять доступ к сервису?\n"
+                     f"Продлите её прямо сейчас.👇",
                 reply_markup=builder.as_markup()
             )
 

@@ -1,52 +1,49 @@
-from datetime import datetime, timedelta, timezone
-from aiogram import Router, F
-from aiogram.types import PreCheckoutQuery, Message, InlineKeyboardButton
-from aiogram.types import LabeledPrice
+from datetime import datetime, timezone
+from aiogram import Router, F, Bot
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
-from config import PAYMENT_TOKEN
+from config import ACCOUNT_ID, SECRET_KEY
 from prices import PRICES
 from marzban import marzban_api
 
+import uuid
+from yookassa import Payment, Configuration
+
+Configuration.account_id = ACCOUNT_ID
+Configuration.secret_key = SECRET_KEY
+
 router = Router()
 
-async def create_payment(bot, user_id: int, tariff: str, day: int):
-    try:
-        print(f"Создаю платёж: {tariff} {day} для {user_id}")
-        price = PRICES.get(tariff, {}).get(str(day))
-        if not price:
-            raise KeyError(f"Price for {tariff}/{day} not found")
-        price_in_copeck = price * 100
+def create_payment(user_id: int,
+                   tariff: str, day: int):
+    idempotence_key = str(uuid.uuid4())
+    amount = PRICES.get(tariff).get(str(day))
 
-        label = f"Тариф {tariff.upper()} - {day} дней"
-        description = f"Доступ на {day} дней"
-        payload = f"payment_{tariff.upper()}_{day}"
+    payment = Payment.create({
+        "amount": {
+            "value": amount,
+            "currency": "RUB"
+        },
+        "confirmation": {
+            "type": "redirect",
+            "return_url": "https://t.me/PSINA_VPNBOT"
+        },
+        "capture": True,
+        "metadata":{
+            "user_id": user_id,
+            "tariff": tariff,
+            "day": day
+        },
+        "description": "Оплата подписки"
+    }, idempotence_key)
+    confirmation_url = payment.confirmation.confirmation_url
+    return confirmation_url
 
-        await bot.send_invoice(
-            chat_id=user_id,
-            title=f"Оплата: {tariff.upper()} - {day} дней",
-            description=description,
-            payload=payload,
-            provider_token=PAYMENT_TOKEN,
-            currency="RUB",
-            prices=[LabeledPrice(label=label, amount=price_in_copeck)],
-            start_parameter="psina-vpn-payment"  # Позволяет перезапустить оплату через deep link
-        )
-    except Exception as e:
-        print(f"Ошибка при создании счета {e}")
-
-@router.pre_checkout_query()
-async def pre_checkout(query: PreCheckoutQuery):
-    await query.answer(ok=True)
-
-@router.message(F.successful_payment)
-async def successful_payment(message: Message):
+async def successful_payment(bot: Bot, user_id: int,
+                             tariff: str, day: int):
     success = False
-    payload = message.successful_payment.invoice_payload
-    user_id = f"tg_{message.from_user.id}"
-
-    parts = payload.split("_")
-    tariff, day = parts[1], int(parts[2])
+    chat_id = user_id
+    user_id = f"tg_{user_id}"
     data_limit = PRICES.get(tariff, {}).get("data_limit")
     user_data = await marzban_api.get_user_info(user_id)
     now_ts = int(datetime.now(timezone.utc).timestamp())
@@ -69,10 +66,10 @@ async def successful_payment(message: Message):
         builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data='menu_sub'))
         builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
 
-        await message.answer(f"Подписка {tariff} успешно активирована/продлена на {day} дней!", reply_markup=builder.as_markup())
+        await bot.send_message(chat_id=chat_id, text=f"Подписка {tariff} успешно активирована/продлена на {day} дней!", reply_markup=builder.as_markup())
     else:
 
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(text="Поддержка", callback_data='help'))
 
-        await message.answer("Произошла ошибка при связи с сервером VPN. Свяжитесь с поддержкой.", reply_markup=builder.as_markup())
+        await bot.send_message(chat_id=chat_id, text="Произошла ошибка при связи с сервером VPN. Свяжитесь с поддержкой.", reply_markup=builder.as_markup())

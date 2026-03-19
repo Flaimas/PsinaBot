@@ -1,18 +1,17 @@
+import uvicorn
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from scheduler import check_vpn_expire, check_expire_users
 from handlers import admin, subscription, start, help, submenu, instructions
 from database import create_db
-from config import BOT_TOKEN, PROXY_URL
+from config import UVICORN_IP, UVICORN_PORT
 from marzban import marzban_api
+from webhooks.webhook_yoomoney import app
+from bot_instance import bot
 import asyncio
 import payment
 
-from aiogram.client.session.aiohttp import AiohttpSession
-
-session = AiohttpSession(proxy=PROXY_URL) if PROXY_URL else None
-bot = Bot(token=BOT_TOKEN, session=session)  # порт твоего VPN
 dp = Dispatcher()
 
 dp.include_router(start.router)
@@ -46,7 +45,12 @@ async def main():
     # schedule.add_job(check_expire_users, 'interval', seconds=10, args=[bot]) #Для тестов
     schedule.start()
 
-    await dp.start_polling(bot)
+    config = uvicorn.Config(app, host=UVICORN_IP, port=UVICORN_PORT, loop='asyncio')
+    server = uvicorn.Server(config)
+    await asyncio.gather(
+        server.serve(),
+        dp.start_polling(bot)
+    )
 
 if __name__ == '__main__':
     asyncio.run(main())

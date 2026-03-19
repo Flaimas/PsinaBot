@@ -1,11 +1,9 @@
 from aiogram import Router, F
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardButton, CallbackQuery, CopyTextButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from config import ADMIN_ID, MANUAL_PAYMENT
+from config import ADMIN_ID
 from database import add_expire_order, check_extend_order, check_order
 from marzban import marzban_api
-from payment import create_payment
 from utils import days_left, traffic_left, SUB_STATUS
 from prices import PRICES
 
@@ -75,40 +73,8 @@ async def add_days(callback: CallbackQuery):
     tariff = user_info['note']
     await callback.message.edit_text(
         text=f'Выберите на сколько требуется продлить подписку {tariff}',
-        reply_markup=get_price_subscription(tariff)
+        reply_markup=tariff_menu('extend',tariff)
     )
-
-
-def get_price_subscription(tariff):
-    tariff = str(tariff)
-    # Базовая цена за 30 дней, чтобы от неё считать выгоду
-    base_price_30 = PRICES[tariff]['30']
-
-    builder = InlineKeyboardBuilder()
-
-    periods = [
-        ("1 месяц", "30", 1),
-        ("3 месяца", "90", 3),
-        ("6 месяцев", "180", 6),
-        ("12 месяцев", "360", 12)
-    ]
-
-    for text, days, month_count in periods:
-        current_price = PRICES[tariff][days]
-
-        # Считаем выгоду: (1 - (цена_периода / (цена_за_месяц * кол_во_месяцев))) * 100
-        # Пример для 3 месяцев: (1 - (429 / (149 * 3))) * 100 = 4%
-        discount = int((1 - (current_price / (base_price_30 * month_count))) * 100)
-
-        discount_str = f" (-{discount}%)" if discount > 0 else ""
-
-        builder.row(InlineKeyboardButton(
-            text=f"{text} - {current_price} ₽{discount_str}",
-            callback_data=f"extend_{tariff}_{days}"
-        ))
-
-    builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data="menu_sub"))
-    return builder.as_markup()
 
 @router.callback_query(F.data.startswith("extend_"))
 async def extend_sub(callback: CallbackQuery):
@@ -117,7 +83,7 @@ async def extend_sub(callback: CallbackQuery):
     days = callback.data.split("_")[2]
 
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Оплатить", callback_data=f"es_{tariff}_{days}"))
+    builder.row(InlineKeyboardButton(text="Оплатить", callback_data=f"pay_{tariff}_{days}"))
     builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data="add_days"))
 
     await callback.message.edit_text(
@@ -126,35 +92,6 @@ async def extend_sub(callback: CallbackQuery):
         reply_markup=builder.as_markup()
 
     )
-
-@router.callback_query(F.data.startswith("es_"))
-async def change_sub_pay(callback: CallbackQuery):
-    await callback.answer()
-
-    id_user = callback.from_user.id
-    parts = callback.data.split("_")
-    tariff, day = parts[1], int(parts[2])
-
-    if MANUAL_PAYMENT:
-        tariff = callback.data.split("_")[1]
-        days = callback.data.split('_')[2]
-
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f'cp_{callback.from_user.id}_{tariff}_{days}'))
-        builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"time_{tariff}_{days}"))
-        await callback.message.edit_text(
-            f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
-            f"\n"
-            f"Подписка {tariff} - {days} дней.\n"
-            f"К оплате: {PRICES[tariff][days]} ₽",
-            reply_markup=builder.as_markup()
-        )
-    else:
-        try:
-            await callback.message.delete()
-        except TelegramBadRequest:
-            pass
-        await create_payment(callback.bot, id_user, tariff, day)  # создание платежа
 
 @router.callback_query(F.data.startswith("PAY_EXTEND_"))
 async def pay_changed(callback: CallbackQuery):
@@ -183,7 +120,7 @@ async def new_tariff(callback: CallbackQuery):
     user_id = f"tg_{callback.from_user.id}"
     user_info = await marzban_api.get_user_info(user_id)
 
-    if user_info.get('status') != 'extend' and user_info.get('note') != 'TRIAL':
+    if user_info.get('status') != 'expired' and user_info.get('note') != 'TRIAL':
         builder = InlineKeyboardBuilder().row(InlineKeyboardButton(text="Помощь", callback_data='help'), InlineKeyboardButton(text="Понятно", callback_data='start'))
         await callback.message.edit_text(text="<blockquote>Внимание‼️\n"
                                               "Изменить тариф можно только после окончания текущего!\n"
@@ -214,11 +151,10 @@ def get_change_subscription():
 async def change_sub(callback: CallbackQuery):
     await callback.answer()
     tariff = callback.data.split('_')[2]
-    await callback.message.edit_text(text=f"Выберите срок подписки {tariff}", reply_markup=get_ch_tariff(tariff))
+    await callback.message.edit_text(text=f"Выберите срок подписки {tariff}", reply_markup=tariff_menu("ch",tariff))
 
-def get_ch_tariff(tariff):
+def tariff_menu(prefix, tariff):
     tariff = str(tariff)
-    # Базовая цена за 30 дней, чтобы от неё считать выгоду
     base_price_30 = PRICES[tariff]['30']
 
     builder = InlineKeyboardBuilder()
@@ -232,16 +168,11 @@ def get_ch_tariff(tariff):
 
     for text, days, month_count in periods:
         current_price = PRICES[tariff][days]
-
-        # Считаем выгоду: (1 - (цена_периода / (цена_за_месяц * кол_во_месяцев))) * 100
-        # Пример для 3 месяцев: (1 - (429 / (149 * 3))) * 100 = 4%
         discount = int((1 - (current_price / (base_price_30 * month_count))) * 100)
-
         discount_str = f" (-{discount}%)" if discount > 0 else ""
-
         builder.row(InlineKeyboardButton(
             text=f"{text} - {current_price} ₽{discount_str}",
-            callback_data=f"ch_{tariff}_{days}"
+            callback_data=f"{prefix}_{tariff}_{days}"
         ))
 
     builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data="menu_sub"))
@@ -254,39 +185,15 @@ async def ch_sub(callback: CallbackQuery):
     days = callback.data.split("_")[2]
 
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Оплатить", callback_data=f"nt_{tariff}_{days}"))
+    builder.row(InlineKeyboardButton(text="Оплатить", callback_data=f"pay_{tariff}_{days}"))
     builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"change_sub_{tariff}"))
 
     await callback.message.edit_text(
-        text=f"Изменение подписки на {tariff} - {days} дней?\n"
+        text=f"Изменить подписку {tariff} - {days} дней?\n"
+             f"\n"
              f"Цена: {PRICES[tariff][days]} ₽",
         reply_markup=builder.as_markup()
     )
-
-@router.callback_query(F.data.startswith("nt_"))
-async def extend_sub_pay(callback: CallbackQuery):
-    await callback.answer()
-    id_user = callback.from_user.id
-    parts = callback.data.split("_")
-    tariff, day = parts[1], int(parts[2])
-    if MANUAL_PAYMENT:
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Я оплатил", callback_data=f"PAY_CHANGE_{tariff}_{day}"))
-        builder.row(InlineKeyboardButton(text="⤿ Назад", callback_data=f"ch_{tariff}_{day}"))
-
-        await callback.message.edit_text(
-            f"ТУТ ДОЛЖНЫ БЫТЬ РЕКВИЗИТЫ\n"
-            f"\n"
-            f"Изменение подписки на {tariff} - {day} дней.\n"
-            f"К оплате: {PRICES.get(tariff, {}).get(str(day))} ₽",
-            reply_markup=builder.as_markup()
-        )
-    else:
-        try:
-            await callback.message.delete()
-        except TelegramBadRequest:
-            pass
-        await create_payment(callback.bot, id_user, tariff, day)  # создание платежа
 
 @router.callback_query(F.data.startswith("PAY_CHANGE_"))
 async def pay_extended(callback: CallbackQuery):
