@@ -1,10 +1,13 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, CommandObject
-from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import Message,CallbackQuery
+
+from database.database import check_or_register_user, check_use_trial, set_trial_used
 from services.marzban import marzban_api
-from services.referral import check_referral
 from services.utils import SUB_STATUS
+from utils.keyboards import get_trial_error_kb, get_trial_success_kb, get_menu_trial_kb, get_start_keyboard, \
+    get_trial_tech_error_kb
+from utils.text import TRIAL_ERROR_TEXT, TRIAL_SUCCESS_TEXT, ERROR_TECH_TEXT, MENU_TRIAL_TEXT
 
 router = Router()
 
@@ -12,18 +15,19 @@ router = Router()
 async def start_handler(message: Message, command: CommandObject):
     user_name = message.from_user.first_name
     user_id = message.from_user.id
-    user_data = await marzban_api.get_user_info(f'tg_{user_id}')
 
-    if command.args:
-        await check_referral(command.args, user_id)
+    referrer_id = command.args
+    referrer_id = int(referrer_id) if referrer_id and referrer_id.isdigit() else None
+    is_new = await check_or_register_user(user_id, user_name, referrer_id)
 
-    if user_data:
-        status = user_data.get('status')
-    else:
-        status = None
-    sub_status = SUB_STATUS.get(status)
+    status = None
+    if not is_new:
+        user_data = await marzban_api.get_user_info(f'tg_{user_id}')
+        status = user_data.get('status') if user_data else None
+
+    sub_status_icon = SUB_STATUS.get(status)
     await message.answer(
-        **text_start_menu(user_name, user_id, sub_status, status)
+        **text_start_menu(user_name, user_id, sub_status_icon, status)
     )
 
 @router.callback_query(F.data == "start")
@@ -60,43 +64,34 @@ def text_start_menu(user_name, user_id, icon_status, sub_status):
         "parse_mode": "HTML"
     }
 
-def get_start_keyboard(sub_status):
-    builder = InlineKeyboardBuilder()
-    if sub_status:
-        builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data=f"menu_sub"))
-    if not sub_status:
-        builder.row(InlineKeyboardButton(text="Пробная подписка на 3 дня", callback_data=f"menu_trial"))
-        builder.row(InlineKeyboardButton(text="Купить VPN", callback_data=f"vpn_start"))
-
-    builder.row(InlineKeyboardButton(text="Инструкции", callback_data="instruction"), InlineKeyboardButton(text="Рефералы", callback_data='referral'))
-    builder.row(InlineKeyboardButton(text="Помощь", callback_data="help"))
-    return builder.as_markup()
-
 @router.callback_query(F.data == 'menu_trial')
 async def menu_trial(callback: CallbackQuery):
     await callback.answer()
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Активировать пробную подписку", callback_data='trial_subscription'))
-    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
-    await callback.message.edit_text(text="Вы можете активировать пробную подписку на 3 дня\n"
-                                          "что бы опробовать наш сервис, после истечения срока\n"
-                                          "просто продлите её в личном кабинете", parse_mode="HTML", reply_markup=builder.as_markup())
+    await callback.message.edit_text(text=MENU_TRIAL_TEXT,
+                                     reply_markup=get_menu_trial_kb(),
+                                     parse_mode="HTML")
+
 
 @router.callback_query(F.data == 'trial_subscription')
 async def trial_subscription(callback: CallbackQuery):
     await callback.answer()
     user_id = callback.from_user.id
-    user_name = f'tg_{user_id}'
-    data = await marzban_api.get_user_info(user_name)
-    if not data:
-        await marzban_api.create_user(user_name, 3, 'TRIAL', 7158278826)
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Получить ссылку", callback_data='get_link'))
-        await callback.message.edit_text(text="Пробная подписка активирована!", parse_mode="HTML",
-                                         reply_markup=builder.as_markup())
-        return
 
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
-    await callback.message.edit_text(text="Вы уже использовали пробный период!", parse_mode="HTML",
-                                     reply_markup=builder.as_markup())
+    if await check_use_trial(user_id):
+        return await callback.message.edit_text(
+            text=TRIAL_ERROR_TEXT,
+            reply_markup=get_trial_error_kb(),
+            parse_mode='HTML'
+        )
+
+    if await marzban_api.create_user(f'tg_{user_id}', 3, 'TRIAL', 7158278826):
+        await set_trial_used(user_id)
+        await callback.message.edit_text(
+            text=TRIAL_SUCCESS_TEXT,
+            reply_markup=get_trial_success_kb(),
+            parse_mode='HTML'
+        )
+    else:
+        await callback.message.answer(text=ERROR_TECH_TEXT,
+                                      reply_markup=get_trial_tech_error_kb(),
+                                      parse_mode='HTML')

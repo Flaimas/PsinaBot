@@ -1,15 +1,21 @@
 import aiosqlite
+from pydantic import with_config
+
 from config import DB_PATH
 
 async def create_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('''
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                tariff TEXT,
-                days INTEGER,
-                status TEXT DEFAULT 'pending'
+            CREATE TABLE IF NOT EXISTS users (
+                tg_id INTEGER PRIMARY KEY,
+                username TEXT,
+                referrer_id INTEGER,
+                trial_used INTEGER DEFAULT 0,
+                balance INTEGER DEFAULT 0,
+                is_admin INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_activity DATETIME,
+                is_banned INTEGER DEFAULT 0
             )
         ''')
         await db.execute('''
@@ -24,6 +30,51 @@ async def create_db():
                     )
                 ''')
         await db.commit()
+
+async def check_or_register_user(tg_id: int, username: str = None,
+                                 referrer_id: int = None):
+    """
+        Пытается создать юзера. Если он есть — обновляет время захода.
+        Возвращает True, если юзер был создан только что (новый).
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        res = await db.execute(
+            "SELECT 1 FROM users WHERE tg_id = ?", (tg_id, )
+        )
+        exist = await res.fetchone()
+        if not exist:
+            query = """
+            INSERT INTO users (tg_id, username, referrer_id, last_activity)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """
+            await db.execute(query, (tg_id, username, referrer_id))
+            await db.commit()
+            return True #юзер новый
+        await db.execute(
+            "UPDATE users SET last_activity = CURRENT_TIMESTAMP, username = ? WHERE tg_id = ?",
+            (username, tg_id)
+        )
+        await db.commit()
+        return False #юзер старый
+
+async def check_use_trial(tg_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        res = await db.execute(
+            "SELECT trial_used FROM users WHERE tg_id = ?",
+            (tg_id,)
+        )
+        used = await res.fetchone()
+        used = used[0] if used else None
+        return bool(used)
+
+async def set_trial_used(tg_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET trial_used = 1 WHERE tg_id = ?",
+            (tg_id,)
+        )
+        await db.commit()
+
 
 async def check_notification(user_id):
     async with aiosqlite.connect(DB_PATH) as db:
