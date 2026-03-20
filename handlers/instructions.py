@@ -71,6 +71,7 @@ async def app_install(callback: CallbackQuery):
     await callback.answer()
     text = INSTRUCTIONS[callback.data]
     builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Получить ссылку", callback_data='get_link'))
     builder.row(InlineKeyboardButton(text="Назад", callback_data="instruction"))
     builder.row(InlineKeyboardButton(text="Главное меню", callback_data="start"))
     await callback.message.edit_text(text=text, parse_mode="HTML", reply_markup=builder.as_markup())

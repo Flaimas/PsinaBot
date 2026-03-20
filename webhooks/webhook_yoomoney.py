@@ -3,7 +3,7 @@ import logging
 import traceback
 
 from fastapi import FastAPI, Request, HTTPException
-from payment import successful_payment
+from services.payment import successful_payment
 from yookassa.domain.notification import WebhookNotification
 from bot_instance import bot
 

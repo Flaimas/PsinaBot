@@ -1,9 +1,9 @@
 from aiogram import Router, F
 from aiogram.types import InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from marzban import marzban_api
+from services.marzban import marzban_api
 from prices import PRICES
-from payment import create_payment
+from services.payment import create_payment
 
 router = Router()
 

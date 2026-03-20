@@ -1,29 +1,33 @@
 from aiogram import Router, F
-from aiogram.filters import Command
+from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from marzban import marzban_api
-from utils import SUB_STATUS
+from services.marzban import marzban_api
+from services.referral import check_referral
+from services.utils import SUB_STATUS
 
 router = Router()
 
-@router.message(Command('start'))
-async def start(message: Message):
+@router.message(CommandStart())
+async def start_handler(message: Message, command: CommandObject):
     user_name = message.from_user.first_name
     user_id = message.from_user.id
     user_data = await marzban_api.get_user_info(f'tg_{user_id}')
+
+    if command.args:
+        await check_referral(command.args, user_id)
+
     if user_data:
         status = user_data.get('status')
     else:
         status = None
     sub_status = SUB_STATUS.get(status)
-
     await message.answer(
         **text_start_menu(user_name, user_id, sub_status, status)
     )
 
 @router.callback_query(F.data == "start")
-async def cb_start(callback: CallbackQuery):
+async def start_cb_handler(callback: CallbackQuery):
     await callback.answer()
 
     user_name = callback.from_user.first_name
@@ -64,7 +68,7 @@ def get_start_keyboard(sub_status):
         builder.row(InlineKeyboardButton(text="Пробная подписка на 3 дня", callback_data=f"menu_trial"))
         builder.row(InlineKeyboardButton(text="Купить VPN", callback_data=f"vpn_start"))
 
-    builder.row(InlineKeyboardButton(text="Инструкции", callback_data="instruction"))
+    builder.row(InlineKeyboardButton(text="Инструкции", callback_data="instruction"), InlineKeyboardButton(text="Рефералы", callback_data='referral'))
     builder.row(InlineKeyboardButton(text="Помощь", callback_data="help"))
     return builder.as_markup()
 

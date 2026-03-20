@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import ACCOUNT_ID, SECRET_KEY
 from prices import PRICES
-from marzban import marzban_api
+from services.marzban import marzban_api
 
 import uuid
 from yookassa import Payment, Configuration

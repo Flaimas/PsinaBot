@@ -1,9 +1,9 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from marzban import marzban_api
+from services.marzban import marzban_api
 from datetime import datetime, timezone, timedelta
-from database import check_notification, set_notified
+from database.database import check_notification, set_notified
 
 async def check_vpn_expire(bot):
     data = await marzban_api.get_all_user()

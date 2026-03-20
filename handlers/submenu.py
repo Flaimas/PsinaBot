@@ -1,10 +1,8 @@
 from aiogram import Router, F
 from aiogram.types import InlineKeyboardButton, CallbackQuery, CopyTextButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from config import ADMIN_ID
-from database import add_expire_order, check_extend_order, check_order
-from marzban import marzban_api
-from utils import days_left, traffic_left, SUB_STATUS
+from services.marzban import marzban_api
+from services.utils import days_left, traffic_left, SUB_STATUS
 from prices import PRICES
 
 router = Router()
@@ -93,27 +91,6 @@ async def extend_sub(callback: CallbackQuery):
 
     )
 
-@router.callback_query(F.data.startswith("PAY_EXTEND_"))
-async def pay_changed(callback: CallbackQuery):
-    await callback.answer()
-    tariff = callback.data.split("_")[2]
-    days = callback.data.split("_")[3]
-    user_id = callback.from_user.id
-    user_name = f"tg_{user_id}"
-    user_info = await marzban_api.get_user_info(user_name)
-    db_check = await check_extend_order(user_id)
-    if db_check:
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
-        await callback.message.edit_text("Подождите пока администратор подтвердит оплату!", reply_markup=builder.as_markup())
-        return
-    if user_info:
-        await add_expire_order(user_id, tariff, days, "extend")
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
-        await callback.message.edit_text("Платеж принят в обработку, в скором времени ваша подписка станет активной!", reply_markup=builder.as_markup())
-        await callback.bot.send_message(text=f"Пользователь {user_id} продлил подписку {tariff} на {days} дней.", chat_id=ADMIN_ID)
-
 @router.callback_query(F.data == 'new_tariff')
 async def new_tariff(callback: CallbackQuery):
     await callback.answer()
@@ -194,27 +171,6 @@ async def ch_sub(callback: CallbackQuery):
              f"Цена: {PRICES[tariff][days]} ₽",
         reply_markup=builder.as_markup()
     )
-
-@router.callback_query(F.data.startswith("PAY_CHANGE_"))
-async def pay_extended(callback: CallbackQuery):
-    await callback.answer()
-    tariff = callback.data.split("_")[2]
-    days = callback.data.split("_")[3]
-    user_id = callback.from_user.id
-    user_name = f"tg_{user_id}"
-    user_info = await marzban_api.get_user_info(user_name)
-    db_check = await check_order(user_id, 'update')
-    if db_check:
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
-        await callback.message.edit_text("Подождите пока администратор подтвердит оплату!", reply_markup=builder.as_markup())
-        return
-    if user_info:
-        await add_expire_order(user_id, tariff, days, "update")
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
-        await callback.message.edit_text("Платеж принят в обработку, в скором времени ваша подписка станет активной!", reply_markup=builder.as_markup())
-        await callback.bot.send_message(text=f"Пользователь {user_id} изменил подписку на {tariff} - {days} дней.", chat_id=ADMIN_ID)
 
 @router.callback_query(F.data == 'get_link')
 async def get_lik(callback: CallbackQuery):
