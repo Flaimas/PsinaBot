@@ -5,7 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from scheduler import check_vpn_expire, check_expire_users
 from handlers import admin, subscription, start, help, submenu, instructions
 from database import create_db
-from config import UVICORN_IP, UVICORN_PORT
+from config import UVICORN_IP, UVICORN_PORT, SSL_KEY, SSL_CER
 from marzban import marzban_api
 from webhooks.webhook_yoomoney import app
 from bot_instance import bot
@@ -45,7 +45,13 @@ async def main():
     # schedule.add_job(check_expire_users, 'interval', seconds=10, args=[bot]) #Для тестов
     schedule.start()
 
-    config = uvicorn.Config(app, host=UVICORN_IP, port=UVICORN_PORT, loop='asyncio')
+    config = uvicorn.Config(app,
+                            host=UVICORN_IP,
+                            port=UVICORN_PORT,
+                            loop='asyncio',
+                            ssl_certfile=SSL_CER,
+                            ssl_keyfile=SSL_KEY)
+
     server = uvicorn.Server(config)
     await asyncio.gather(
         server.serve(),

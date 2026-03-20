@@ -21,4 +21,5 @@ PROXY_URL = 'http://127.0.0.1:10808'
 UVICORN_IP = '127.0.0.1' #данные для webhook
 UVICORN_PORT = 8001
 
-MANUAL_PAYMENT=False #РУЧНАЯ ОПЛАТА
+SSL_CER = os.getenv("SSL_CER")
+SSL_KEY = os.getenv("SSL_KEY")
