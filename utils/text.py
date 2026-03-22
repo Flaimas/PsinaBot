@@ -24,3 +24,7 @@ REFERRAL_HANDLER_TEXT = (
     "<b>Ваша реферальная ссылка:</b>\n"
     "<code>{link}</code>"
 )
+
+PAYMENT_SUCCESS_TEXT = "Подписка {tariff} успешно активирована/продлена на {day} дней!"
+
+PAYMENT_FAILED_TEXT = "Произошла ошибка при связи с сервером VPN. Свяжитесь с поддержкой."

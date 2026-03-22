@@ -4,7 +4,7 @@ from aiogram.types import Message,CallbackQuery
 from database.database import check_or_register_user, check_use_trial, set_trial_used
 from services.marzban import marzban_api
 from services.utils import SUB_STATUS
-from utils.keyboards import get_trial_error_kb, get_trial_success_kb, get_menu_trial_kb, get_start_keyboard, \
+from utils.keyboards import get_trial_error_kb, get_trial_success_kb, get_menu_trial_kb, get_start_kb, \
     get_trial_tech_error_kb
 from utils.text import TRIAL_ERROR_TEXT, TRIAL_SUCCESS_TEXT, ERROR_TECH_TEXT, MENU_TRIAL_TEXT
 
@@ -59,7 +59,7 @@ def text_start_menu(user_name, user_id, icon_status, sub_status):
     # Возвращаем словарь со всеми аргументами
     return {
         "text": text,
-        "reply_markup": get_start_keyboard(sub_status),
+        "reply_markup": get_start_kb(sub_status),
         "parse_mode": "HTML"
     }
 

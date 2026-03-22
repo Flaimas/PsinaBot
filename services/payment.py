@@ -9,6 +9,9 @@ from services.marzban import marzban_api
 import uuid
 from yookassa import Payment, Configuration
 
+from utils.keyboards import get_success_payment_kb, get_failed_payment_kb
+from utils.text import PAYMENT_SUCCESS_TEXT, PAYMENT_FAILED_TEXT
+
 Configuration.account_id = ACCOUNT_ID
 Configuration.secret_key = SECRET_KEY
 
@@ -61,15 +64,10 @@ async def successful_payment(bot: Bot, user_id: int,
         success = await marzban_api.create_user(user_id, day, tariff, data_limit, 'active')
 
     if success:
-
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data='menu_sub'))
-        builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
-
-        await bot.send_message(chat_id=chat_id, text=f"Подписка {tariff} успешно активирована/продлена на {day} дней!", reply_markup=builder.as_markup())
+        await bot.send_message(chat_id=chat_id,
+                               text=PAYMENT_SUCCESS_TEXT.format(tariff=tariff, day=day),
+                               reply_markup=get_success_payment_kb())
     else:
-
-        builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text="Поддержка", callback_data='help'))
-
-        await bot.send_message(chat_id=chat_id, text="Произошла ошибка при связи с сервером VPN. Свяжитесь с поддержкой.", reply_markup=builder.as_markup())
+        await bot.send_message(chat_id=chat_id,
+                               text=PAYMENT_FAILED_TEXT,
+                               reply_markup=get_failed_payment_kb())

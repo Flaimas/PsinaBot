@@ -24,7 +24,7 @@ def get_menu_trial_kb():
     builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
     return builder.as_markup()
 
-def get_start_keyboard(sub_status):
+def get_start_kb(sub_status):
     builder = InlineKeyboardBuilder()
 
     if sub_status:
@@ -37,9 +37,20 @@ def get_start_keyboard(sub_status):
     builder.row(InlineKeyboardButton(text="Помощь", callback_data="help"))
     return builder.as_markup()
 
-def get_referral_keyboard(link):
+def get_referral_kb(link):
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Поделиться с другом",
                                      switch_inline_query=f"\nПользуюсь этим VPN, держи ссылку: {link}" ))
     builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+    return builder.as_markup()
+
+def get_success_payment_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data='menu_sub'))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+    return builder.as_markup()
+
+def get_failed_payment_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Поддержка", callback_data='help'))
     return builder.as_markup()
