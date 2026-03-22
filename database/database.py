@@ -84,6 +84,14 @@ async def get_referrer(tg_id: int):
             referrer_id = await cursor.fetchone()
             return referrer_id[0] if referrer_id else None
 
+async def add_reward(reward: int, tg_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET reward_balance = reward_balance + ? WHERE tg_id = ?",
+            (reward, tg_id)
+        )
+        await db.commit()
+
 async def check_notification(user_id):
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
