@@ -69,10 +69,12 @@ async def successful_payment(bot: Bot, user_id: int,
         print(reward_amount)
         referrer_id = await get_referrer(user_id)
         if reward_amount > 0 and referrer_id:
-            await add_reward(reward_amount, user_id)
+            await add_reward(reward_amount, referrer_id)
             try:
                 await bot.send_message(referrer_id,
-                                       text=ADD_REWARD_TEXT.format(reward_amount=reward_amount))
+                                       text=ADD_REWARD_TEXT.format(
+                                           reward_amount=reward_amount)
+                                       )
             except Exception:
                 pass
 

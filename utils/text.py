@@ -19,8 +19,8 @@ MENU_TRIAL_TEXT = (
 REFERRAL_HANDLER_TEXT = (
     "<b>Реферальная система:</b>\n"
     "Приглашайте друзей и получайте бонусы!\n\n"
-    "Вы пригласили: [add function] человек.\n"
-    "Заработано с рефералов: [add function]\n\n"
+    "Рефералов приглашено: {count_ref}\n"
+    "Заработано с рефералов: {reward_balance}\n\n"
     "<b>Ваша реферальная ссылка:</b>\n"
     "<code>{link}</code>"
 )
@@ -28,3 +28,5 @@ REFERRAL_HANDLER_TEXT = (
 PAYMENT_SUCCESS_TEXT = "Подписка {tariff} успешно активирована/продлена на {day} дней!"
 
 PAYMENT_FAILED_TEXT = "Произошла ошибка при связи с сервером VPN. Свяжитесь с поддержкой."
+
+ADD_REWARD_TEXT = "💰 Один из ваших рефералов приобрел подписку, вам было начислено {reward_amount} ₽"

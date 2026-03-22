@@ -23,3 +23,5 @@ UVICORN_PORT = int(os.getenv('UVICORN_PORT'))
 
 SSL_CER = os.getenv("SSL_CER")
 SSL_KEY = os.getenv("SSL_KEY")
+
+REFERRAL_REWARD_RATIO = 0.1 #процент награды, начисляющийся реферерру
