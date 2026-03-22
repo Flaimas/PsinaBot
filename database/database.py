@@ -75,6 +75,14 @@ async def set_trial_used(tg_id: int):
         )
         await db.commit()
 
+async def get_referrer(tg_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            'SELECT referrer_id FROM users WHERE tg_id = ?',
+            (tg_id,)
+        ) as cursor:
+            referrer_id = await cursor.fetchone()
+            return referrer_id[0] if referrer_id else None
 
 async def check_notification(user_id):
     async with aiosqlite.connect(DB_PATH) as db:
