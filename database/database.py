@@ -1,5 +1,6 @@
+from itertools import count
+
 import aiosqlite
-from pydantic import with_config
 
 from config import DB_PATH
 
@@ -84,6 +85,24 @@ async def get_referrer(tg_id: int):
         ) as cursor:
             referrer_id = await cursor.fetchone()
             return referrer_id[0] if referrer_id else None
+
+async def get_count_referrals(referrer_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT COUNT(*) FROM users WHERE referrer_id = ?",
+            (referrer_id,)
+        ) as cursor:
+            count_ref = await cursor.fetchone()
+            return count_ref[0] if count_ref else None
+
+async def get_reward_balance(tg_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT reward_balance FROM users WHERE tg_id = ?",
+            (tg_id,)
+        ) as cursor:
+            reward_balance = await cursor.fetchone()
+            return reward_balance[0] if reward_balance else None
 
 async def add_reward(reward: int, tg_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
