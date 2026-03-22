@@ -37,7 +37,9 @@ def get_start_keyboard(sub_status):
     builder.row(InlineKeyboardButton(text="Помощь", callback_data="help"))
     return builder.as_markup()
 
-def get_referral_keyboard():
+def get_referral_keyboard(link):
     builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Поделиться с другом",
+                                     switch_inline_query=f"\nПользуюсь этим VPN, держи ссылку: {link}" ))
     builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
     return builder.as_markup()

@@ -12,5 +12,5 @@ async def referral_handler(callback: CallbackQuery):
     link = await create_start_link(bot, str(callback.from_user.id), encode=False)
 
     await callback.message.edit_text(text=REFERRAL_HANDLER_TEXT.format(link=link),
-                                     reply_markup=get_referral_keyboard(),
+                                     reply_markup=get_referral_keyboard(link),
                                      parse_mode="HTML")
