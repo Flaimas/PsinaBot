@@ -12,6 +12,7 @@ async def create_db():
                 referrer_id INTEGER,
                 trial_used INTEGER DEFAULT 0,
                 balance INTEGER DEFAULT 0,
+                reward_balance INTEGER DEFAULT 0,
                 is_admin INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_activity DATETIME,
