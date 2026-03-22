@@ -48,7 +48,7 @@ async def successful_payment(bot: Bot, user_id: int,
     success = False
     user_name = f"tg_{user_id}"
     data_limit = PRICES.get(tariff, {}).get("data_limit")
-    user_data = await marzban_api.get_user_info(user_id)
+    user_data = await marzban_api.get_user_info(user_name)
     now_ts = int(datetime.now(timezone.utc).timestamp())
 
     if user_data:
@@ -64,13 +64,14 @@ async def successful_payment(bot: Bot, user_id: int,
         success = await marzban_api.create_user(user_name, day, tariff, data_limit, 'active')
 
     if success:
-        amount = PRICES.get(tariff,{}).get(day, 0)
-        reward_amount = amount * REFERRAL_REWARD_RATIO
-        referrer_id = get_referrer(user_id)
+        amount = PRICES.get(tariff,{}).get(str(day), 0)
+        reward_amount = int(amount * REFERRAL_REWARD_RATIO)
+        print(reward_amount)
+        referrer_id = await get_referrer(user_id)
         if reward_amount > 0 and referrer_id:
             await add_reward(reward_amount, user_id)
             try:
-                await bot.send_message(user_id,
+                await bot.send_message(referrer_id,
                                        text=ADD_REWARD_TEXT.format(reward_amount=reward_amount))
             except Exception:
                 pass
