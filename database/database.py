@@ -27,8 +27,15 @@ async def create_db():
             )
         ''')
         await db.execute('''
-                    CREATE TABLE IF NOT EXISTS trials (
-                        user_id INTEGER UNIQUE
+                    CREATE TABLE IF NOT EXISTS transactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tg_id INTEGER NOT NULL,
+                        amount REAL NOT NULL,
+                        tariff_name TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'pending',
+                        payment_id TEXT UNIQUE,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        paid_at DATETIME
                     )
                 ''')
         await db.commit()
@@ -128,75 +135,10 @@ async def set_notified(user_id, notification):
         )
         await db.commit()
 
-async def check_pending_order(user_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
-            'SELECT id FROM orders WHERE user_id = ? AND status = "pending"',
-            (user_id,)
-        )
-        return await cursor.fetchone() # Вернет ID заказа или None
-
-async def check_extend_order(user_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
-            'SELECT id FROM orders WHERE user_id = ? AND status = "extend"',
-            (user_id,)
-        )
-        return await cursor.fetchone() # Вернет ID заказа или None
-
-async def check_order(user_id, status):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
-            'SELECT id FROM orders WHERE user_id = ? AND status = ?',
-            (user_id, status)
-        )
-        return await cursor.fetchone() # Вернет ID заказа или None
-
-async def add_order(user_id, tariff, days):
+async def create_transaction(tg_id: int, amount: float, tariff_name: str, payment_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            'INSERT INTO orders (user_id, tariff, days) VALUES (?, ?, ?)',
-            (user_id, tariff, days)
+            'INSERT INTO transactions (tg_id, amount, tariff_name, payment_id)'
+            'VALUES (?, ?, ?, ?)', (tg_id, amount, tariff_name, payment_id)
         )
         await db.commit()
-
-async def add_expire_order(user_id, tariff, days, status):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            'INSERT INTO orders (user_id, tariff, days, status) VALUES (?, ?, ?, ?)',
-            (user_id, tariff, days, status)
-        )
-        await db.commit()
-
-async def db_delete_user(order_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            'DELETE FROM orders WHERE id = ?',
-            (order_id,)
-        )
-        await db.commit()
-
-async def update_order_status(order_id: int, new_status: str):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            'UPDATE orders SET status = ? WHERE id = ?',
-            (new_status, order_id)
-        )
-        await db.commit()
-
-async def get_order(order_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
-            'SELECT * FROM orders WHERE id = ?',
-            (order_id,)
-        )
-        return await cursor.fetchone()
-
-
-async def get_orders_list(status):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
-            'SELECT id, user_id, tariff, days FROM orders WHERE status = ?',
-            (status,)
-        )
-        return await cursor.fetchall()
