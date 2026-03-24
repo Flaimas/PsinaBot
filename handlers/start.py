@@ -1,12 +1,12 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import Message,CallbackQuery
-from database.database import check_or_register_user, check_use_trial, set_trial_used
+from database.database import check_or_register_user, check_use_trial, set_trial_used, get_referrer
 from services.marzban import marzban_api
 from services.utils import SUB_STATUS
 from utils.keyboards import get_trial_error_kb, get_trial_success_kb, get_menu_trial_kb, get_start_kb, \
-    get_trial_tech_error_kb
-from utils.text import TRIAL_ERROR_TEXT, TRIAL_SUCCESS_TEXT, ERROR_TECH_TEXT, MENU_TRIAL_TEXT
+    get_trial_tech_error_kb, get_new_user_kb
+from utils.text import TRIAL_ERROR_TEXT, TRIAL_SUCCESS_TEXT, ERROR_TECH_TEXT, MENU_TRIAL_TEXT, NEW_USER_TEXT
 
 router = Router()
 
@@ -19,10 +19,13 @@ async def start_handler(message: Message, command: CommandObject):
     referrer_id = int(referrer_id) if referrer_id and referrer_id.isdigit() else None
     is_new = await check_or_register_user(user_id, user_name, referrer_id)
 
-    status = None
-    if not is_new:
-        user_data = await marzban_api.get_user_info(f'tg_{user_id}')
-        status = user_data.get('status') if user_data else None
+    if is_new:
+        await message.answer(text=NEW_USER_TEXT.format(referrer_id=referrer_id),
+                             reply_markup=get_new_user_kb())
+        return
+
+    user_data = await marzban_api.get_user_info(f'tg_{user_id}')
+    status = user_data.get('status') if user_data else None
 
     sub_status_icon = SUB_STATUS.get(status)
     await message.answer(
@@ -83,7 +86,19 @@ async def trial_subscription(callback: CallbackQuery):
             parse_mode='HTML'
         )
 
-    if await marzban_api.create_user(f'tg_{user_id}', 3, 'TRIAL', 7158278826):
+    if await get_referrer(user_id):
+        success = await marzban_api.create_user(f'tg_{user_id}', 10, 'TRIAL', 17179869184)
+        if success:
+            return await callback.message.edit_text(
+                text=TRIAL_SUCCESS_TEXT,
+                reply_markup=get_trial_success_kb(),
+                parse_mode='HTML'
+            )
+        return await callback.message.edit_text(text=ERROR_TECH_TEXT,
+                                      reply_markup=get_trial_tech_error_kb(),
+                                      parse_mode='HTML')
+
+    if await marzban_api.create_user(f'tg_{user_id}', 3, 'TRIAL', 6442450944):
         await set_trial_used(user_id)
         await callback.message.edit_text(
             text=TRIAL_SUCCESS_TEXT,
