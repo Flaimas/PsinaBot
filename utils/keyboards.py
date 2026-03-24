@@ -54,3 +54,8 @@ def get_failed_payment_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Поддержка", callback_data='help'))
     return builder.as_markup()
+
+def get_add_reward_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Посмотреть", callback_data='referral'))
+    return builder.as_markup()

@@ -10,7 +10,7 @@ from services.marzban import marzban_api
 import uuid
 from yookassa import Payment, Configuration
 
-from utils.keyboards import get_success_payment_kb, get_failed_payment_kb
+from utils.keyboards import get_success_payment_kb, get_failed_payment_kb, get_add_reward_kb
 from utils.text import PAYMENT_SUCCESS_TEXT, PAYMENT_FAILED_TEXT, ADD_REWARD_TEXT
 
 Configuration.account_id = ACCOUNT_ID
@@ -72,8 +72,8 @@ async def successful_payment(bot: Bot, user_id: int,
             await add_reward(reward_amount, referrer_id)
             try:
                 await bot.send_message(referrer_id,
-                                       text=ADD_REWARD_TEXT.format(
-                                           reward_amount=reward_amount)
+                                       text=ADD_REWARD_TEXT.format(reward_amount=reward_amount),
+                                       reply_markup=get_add_reward_kb()
                                        )
             except Exception:
                 pass
