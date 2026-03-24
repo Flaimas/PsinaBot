@@ -19,7 +19,7 @@ async def start_handler(message: Message, command: CommandObject):
     referrer_id = int(referrer_id) if referrer_id and referrer_id.isdigit() else None
     is_new = await check_or_register_user(user_id, user_name, referrer_id)
 
-    if is_new:
+    if is_new and referrer_id:
         await message.answer(text=NEW_USER_TEXT.format(referrer_id=referrer_id),
                              reply_markup=get_new_user_kb())
         return
@@ -89,6 +89,11 @@ async def trial_subscription(callback: CallbackQuery):
     if await get_referrer(user_id):
         success = await marzban_api.create_user(f'tg_{user_id}', 10, 'TRIAL', 17179869184)
         if success:
+            await set_trial_used(user_id)
+            referrer_id = await get_referrer(user_id)
+            await marzban_api.update_referrer_sub(referrer_id)
+
+            await callback.bot.send_message(referrer_id, 'Реферал активировал пробную подписку, вы получили дополнительные 7 дней к своей подписке')
             return await callback.message.edit_text(
                 text=TRIAL_SUCCESS_TEXT,
                 reply_markup=get_trial_success_kb(),

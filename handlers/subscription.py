@@ -11,7 +11,7 @@ router = Router()
 async def back_to_subscription(callback: CallbackQuery):
     await callback.answer()
     user_id = f'tg_{callback.from_user.id}'
-    status_vpn = await marzban_api.check_user(user_id)
+    status_vpn = await marzban_api.get_user_info(user_id)
     if status_vpn:
 
         builder = InlineKeyboardBuilder()
