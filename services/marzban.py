@@ -1,3 +1,5 @@
+from sys import prefix
+
 import aiohttp
 from config import MARZBAN_URL, MARZBAN_USERNAME, MARZBAN_PASSWORD
 from datetime import datetime, timedelta, timezone
@@ -61,10 +63,7 @@ class MarzbanAPI:
             }
         }
         resp_status, data = await self._request('post', f'{self.url}/api/user', json=data)
-        if resp_status == 200:
-            return True
-        else:
-            return False
+        return resp_status == 200
 
     async def delete_user(self, username):
         status, data = await self._request('delete', f'{self.url}/api/user/{username}')
@@ -72,14 +71,7 @@ class MarzbanAPI:
             return True
         return False
 
-    async def check_user(self, username):
-        status, data = await self._request('get', f'{self.url}/api/user/{username}')
-        if status == 200:
-            return True
-        else:
-            return False
-
-    async def get_user_info(self, username):
+    async def get_user_info(self, username: str):
         status, data = await self._request('get', f'{self.url}/api/user/{username}')
         if status == 200:
             return data
@@ -93,13 +85,34 @@ class MarzbanAPI:
 
     async def update_user(self, username: str, expire: int, data_limit: int, tariff: str,
                           data_limit_reset_strategy: str = 'month'):
-        json_data = {
-            "expire": expire,
-            "data_limit": data_limit,
-            "note": tariff,
-            "data_limit_reset_strategy": data_limit_reset_strategy
-        }
-        status, data = await self._request('put', f'{self.url}/api/user/{username}', json=json_data)
+        user_data = await self.get_user_info(username)
+        if user_data:
+            user_data['expire'] = expire
+            user_data['data_limit'] = data_limit
+            user_data['note'] = tariff
+            user_data['data_limit_reset_strategy'] = data_limit_reset_strategy
+        else:
+            return False
+        status, data = await self._request('put', f'{self.url}/api/user/{username}', json=user_data)
+        return status == 200
+
+    async def update_referrer_sub(self, tg_id: int):
+        username = f'tg_{tg_id}'
+        user_data = await self.get_user_info(username)
+
+        if not user_data:
+            return False
+
+        expire = user_data.get('expire')
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        DAYS_7 = 7 * 24 * 60 * 60
+
+        if expire:
+            start_point = max(expire, now_ts)
+            user_data['expire'] = int(start_point + DAYS_7)
+        else:
+            return False
+        status, data = await self._request('put', f'{self.url}/api/user/{username}', json=user_data)
         return status == 200
 
     async def close(self):
