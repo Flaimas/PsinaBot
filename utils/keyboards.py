@@ -30,7 +30,7 @@ def get_start_kb(sub_status):
     if sub_status:
         builder.row(InlineKeyboardButton(text="Управление подпиской", callback_data=f"menu_sub"))
     if not sub_status:
-        builder.row(InlineKeyboardButton(text="Пробная подписка на 3 дня", callback_data=f"menu_trial"))
+        builder.row(InlineKeyboardButton(text="Пробная подписка", callback_data=f"menu_trial"))
         builder.row(InlineKeyboardButton(text="Купить VPN", callback_data=f"vpn_start"))
 
     builder.row(InlineKeyboardButton(text="Инструкции", callback_data="instruction"), InlineKeyboardButton(text="Рефералы", callback_data='referral'))
@@ -58,4 +58,10 @@ def get_failed_payment_kb():
 def get_add_reward_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Посмотреть", callback_data='referral'))
+    return builder.as_markup()
+
+def get_new_user_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Получить подарок", callback_data='trial_subscription'))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
     return builder.as_markup()

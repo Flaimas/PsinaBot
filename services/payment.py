@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
 from aiogram import Router, F, Bot
-from aiogram.exceptions import TelegramBadRequest
-
 from config import ACCOUNT_ID, SECRET_KEY, REFERRAL_REWARD_RATIO
 from database.database import get_referrer, add_reward
 from prices import PRICES
