@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime, timezone, timedelta
-from aiogram import Router, Bot
+from aiogram import Bot
 from config import ACCOUNT_ID, SECRET_KEY, REFERRAL_REWARD_RATIO
-from database.database import get_referrer, add_reward, create_transaction, get_active_transaction
+from database.database import get_referrer, add_reward, create_transaction, get_active_transaction, issued_subscription
 from prices import PRICES
 from services.marzban import marzban_api
 
@@ -15,15 +15,13 @@ from utils.text import PAYMENT_SUCCESS_TEXT, PAYMENT_FAILED_TEXT, ADD_REWARD_TEX
 Configuration.account_id = ACCOUNT_ID
 Configuration.secret_key = SECRET_KEY
 
-router = Router()
-
 async def create_payment(user_id: int, tariff: str, day: int):
     try:
         idempotence_key = str(uuid.uuid4())
 
         tariff_info = PRICES.get(tariff)
         if not tariff_info:
-            logging.error(f'Ошибка! Тариф {tariff_info} не найден в RICES')
+            logging.error(f'Ошибка! Тариф {tariff} не найден в PRICES')
             return None, None
 
         amount = tariff_info.get(str(day))
@@ -83,8 +81,7 @@ async def get_or_create_payment(tg_id: int, tariff_name: str, day: int):
 
     return await create_payment(tg_id, tariff_name, day)
 
-async def successful_payment(bot: Bot, user_id: int,
-                             tariff: str, day: int):
+async def successful_payment(bot: Bot, user_id: int, tariff: str, day: int, payment_id: str):
     success = False
     user_name = f"tg_{user_id}"
     data_limit = PRICES.get(tariff, {}).get("data_limit")
@@ -104,9 +101,10 @@ async def successful_payment(bot: Bot, user_id: int,
         success = await marzban_api.create_user(user_name, day, tariff, data_limit, 'active')
 
     if success:
+        await issued_subscription(payment_id)
+
         amount = PRICES.get(tariff,{}).get(str(day), 0)
         reward_amount = int(amount * REFERRAL_REWARD_RATIO)
-        print(reward_amount)
         referrer_id = await get_referrer(user_id)
         if reward_amount > 0 and referrer_id:
             await add_reward(reward_amount, referrer_id)
