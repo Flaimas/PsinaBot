@@ -1,7 +1,8 @@
+import logging
 from datetime import datetime, timezone
-from aiogram import Router, F, Bot
+from aiogram import Router, Bot
 from config import ACCOUNT_ID, SECRET_KEY, REFERRAL_REWARD_RATIO
-from database.database import get_referrer, add_reward
+from database.database import get_referrer, add_reward, create_transaction
 from prices import PRICES
 from services.marzban import marzban_api
 
@@ -16,30 +17,53 @@ Configuration.secret_key = SECRET_KEY
 
 router = Router()
 
-def create_payment(user_id: int,
-                   tariff: str, day: int):
-    idempotence_key = str(uuid.uuid4())
-    amount = PRICES.get(tariff).get(str(day))
+async def create_payment(user_id: int, tariff: str, day: int):
+    try:
+        idempotence_key = str(uuid.uuid4())
 
-    payment = Payment.create({
-        "amount": {
-            "value": amount,
-            "currency": "RUB"
-        },
-        "confirmation": {
-            "type": "redirect",
-            "return_url": "https://t.me/PSINA_VPNBOT"
-        },
-        "capture": True,
-        "metadata":{
-            "user_id": user_id,
-            "tariff": tariff,
-            "day": day
-        },
-        "description": "Оплата подписки"
-    }, idempotence_key)
-    confirmation_url = payment.confirmation.confirmation_url
-    return confirmation_url
+        tariff_info = PRICES.get(tariff)
+        if not tariff_info:
+            logging.error(f'Ошибка! Тариф {tariff_info} не найден в RICES')
+            return None, None
+
+        amount = tariff_info.get(str(day))
+        if not amount:
+            logging.error(f'Ошибка! Срок {day} дней не найден для тарифа {tariff_info}!')
+            return None, None
+
+        payment = Payment.create({
+            "amount": {
+                "value": amount,
+                "currency": "RUB"
+            },
+            "confirmation": {
+                "type": "redirect",
+                "return_url": "https://t.me/PSINA_VPNBOT"
+            },
+            "capture": True,
+            "metadata": {
+                "user_id": user_id,
+                "tariff": tariff,
+                "day": day
+            },
+            "description": "Оплата подписки"
+        }, idempotence_key)
+
+        confirmation_url = payment.confirmation.confirmation_url
+        payment_id = payment.id
+
+        await create_transaction(
+            tg_id=user_id,
+            amount=float(amount),
+            tariff_name=tariff,
+            payment_id=payment_id
+        )
+
+        return confirmation_url, payment_id
+
+    except Exception as e:
+        logging.error(f'Ошибка при создании платежа: {e}')
+        return None, None
 
 async def successful_payment(bot: Bot, user_id: int,
                              tariff: str, day: int):
