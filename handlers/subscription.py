@@ -4,6 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from services.marzban import marzban_api
 from prices import PRICES
 from services.payment import create_payment
+from utils.keyboards import get_create_payment_kb
 
 router = Router()
 
@@ -49,41 +50,9 @@ async def cb_subscription_details(callback: CallbackQuery):
 
 def inline_subscription_list(tariff):
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=f"1 месяц - {PRICES[tariff]['30']} ₽", callback_data=f"time_{tariff}_30"))
-    builder.row(InlineKeyboardButton(text=f"3 месяца - {PRICES[tariff]['90']} ₽", callback_data=f"time_{tariff}_90"))
-    builder.row(InlineKeyboardButton(text=f"6 месяцев - {PRICES[tariff]['180']} ₽", callback_data=f"time_{tariff}_180"))
-    builder.row(InlineKeyboardButton(text=f"12 месяцев - {PRICES[tariff]['360']} ₽", callback_data=f"time_{tariff}_360"))
+    builder.row(InlineKeyboardButton(text=f"1 месяц - {PRICES[tariff]['30']} ₽", callback_data=f"pay_{tariff}_30"))
+    builder.row(InlineKeyboardButton(text=f"3 месяца - {PRICES[tariff]['90']} ₽", callback_data=f"pay_{tariff}_90"))
+    builder.row(InlineKeyboardButton(text=f"6 месяцев - {PRICES[tariff]['180']} ₽", callback_data=f"pay_{tariff}_180"))
+    builder.row(InlineKeyboardButton(text=f"12 месяцев - {PRICES[tariff]['360']} ₽", callback_data=f"pay_{tariff}_360"))
     builder.row(InlineKeyboardButton(text="Назад", callback_data=f"vpn_start"))
     return builder.as_markup()
-
-@router.callback_query(F.data.startswith("time_"))
-async def time_subscription(callback: CallbackQuery):
-    await callback.answer()
-
-    tariff = callback.data.split("_")[1]
-    days = callback.data.split('_')[2]
-
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text='Купить', callback_data=f"pay_{tariff}_{days}"))
-    builder.row(InlineKeyboardButton(text='Назад', callback_data=f"sub_{tariff}"))
-
-    await callback.message.edit_text(text=f'Тариф: {tariff}\n'
-                                          f'Срок: {days} дней.\n'
-                                          f'Стоимость: {PRICES[tariff][days]} ₽',
-                                     reply_markup=builder.as_markup())
-
-@router.callback_query(F.data.startswith("pay_"))
-async def pay_subscription(callback: CallbackQuery):
-    await callback.answer()
-
-    id_user = callback.from_user.id
-    parts = callback.data.split("_")
-    tariff, day = parts[1], int(parts[2])
-
-    payment_url = create_payment(id_user, tariff, day)  # создание платежа
-
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text='Оплатить (Юкасса)💳', url=payment_url))
-    builder.row(InlineKeyboardButton(text='Назад', callback_data=f'time_{tariff}_{day}'))
-    await callback.message.edit_text(text="Перейдите на страницу оплаты и совершите платеж.\n"
-                                          "Подписка придет автоматически после оплаты.", reply_markup=builder.as_markup())
