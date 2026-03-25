@@ -32,6 +32,7 @@ async def create_db():
                         tg_id INTEGER NOT NULL,
                         amount REAL NOT NULL,
                         tariff_name TEXT NOT NULL,
+                        day INTEGER NOT NULL,
                         status TEXT NOT NULL DEFAULT 'pending',
                         payment_id TEXT UNIQUE,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -142,3 +143,13 @@ async def create_transaction(tg_id: int, amount: float, tariff_name: str, paymen
             'VALUES (?, ?, ?, ?)', (tg_id, amount, tariff_name, payment_id)
         )
         await db.commit()
+
+async def get_active_transaction(tg_id: int, tariff_name: str, day: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            'SELECT payment_id, created_at FROM transactions '
+            'WHERE tg_id = ? AND tariff_name = ? AND day = ? AND status = "pending" '
+            'ORDER BY created_at DESC LIMIT 1',
+            (tg_id, tariff_name, day)
+        )
+        return await cursor.fetchone()
