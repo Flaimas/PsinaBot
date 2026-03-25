@@ -1,8 +1,8 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from aiogram import Router, Bot
 from config import ACCOUNT_ID, SECRET_KEY, REFERRAL_REWARD_RATIO
-from database.database import get_referrer, add_reward, create_transaction
+from database.database import get_referrer, add_reward, create_transaction, get_active_transaction
 from prices import PRICES
 from services.marzban import marzban_api
 
@@ -65,6 +65,23 @@ async def create_payment(user_id: int, tariff: str, day: int):
     except Exception as e:
         logging.error(f'Ошибка при создании платежа: {e}')
         return None, None
+
+async def get_or_create_payment(tg_id: int, tariff_name: str, day: int):
+    active_transaction = await get_active_transaction(tg_id, tariff_name, day)
+
+    if active_transaction:
+        payment_id, created_at_str = active_transaction
+        created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+
+        if datetime.now(timezone.utc) - created_at < timedelta(minutes=8):
+            try:
+                existing_payment = Payment.find_one(payment_id)
+                if existing_payment.status == 'pending':
+                    return existing_payment.confirmation.confirmation_url, payment_id
+            except Exception as e:
+                logging.error(f'Платеж {payment_id} не актуален в ЮKassa: {e}')
+
+    return await create_payment(tg_id, tariff_name, day)
 
 async def successful_payment(bot: Bot, user_id: int,
                              tariff: str, day: int):
