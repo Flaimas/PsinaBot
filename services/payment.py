@@ -56,6 +56,7 @@ async def create_payment(user_id: int, tariff: str, day: int):
             tg_id=user_id,
             amount=float(amount),
             tariff_name=tariff,
+            day=day,
             payment_id=payment_id
         )
 
