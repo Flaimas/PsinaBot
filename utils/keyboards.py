@@ -65,3 +65,14 @@ def get_new_user_kb():
     builder.row(InlineKeyboardButton(text="Получить подарок", callback_data='trial_subscription'))
     builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
     return builder.as_markup()
+
+def get_create_payment_kb(payment_url: str, tariff: str, day: any):
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text='Оплатить (Юкасса)💳', url=payment_url))
+    builder.row(InlineKeyboardButton(text='Назад', callback_data=f'time_{tariff}_{day}'))
+    return builder.as_markup()
+
+def get_create_payment_error_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text='Главное меню', callback_data='start'))
+    return builder.as_markup()
