@@ -20,13 +20,14 @@ async def payment(callback: CallbackQuery):
     payment_url, payment_id = await get_or_create_payment(
         tg_id=id_user,
         tariff_name=tariff,
-        day=day)
+        day=day
+    )
 
     if payment_url:
         await callback.message.edit_text(
             text=CREATE_PAYMENT_TEXT,
             reply_markup=get_create_payment_kb(payment_url, tariff, day)
-            )
+        )
     else:
         await callback.message.edit_text(
             text=CREATE_PAYMENT_ERROR_TEXT,

@@ -82,21 +82,15 @@ async def get_or_create_payment(tg_id: int, tariff_name: str, day: int):
     return await create_payment(tg_id, tariff_name, day)
 
 async def successful_payment(bot: Bot, user_id: int, tariff: str, day: int, payment_id: str):
-    success = False
     user_name = f"tg_{user_id}"
-    data_limit = PRICES.get(tariff, {}).get("data_limit")
+    tariff_data = PRICES.get(tariff, {})
+    data_limit = tariff_data.get("data_limit")
+
     user_data = await marzban_api.get_user_info(user_name)
-    now_ts = int(datetime.now(timezone.utc).timestamp())
 
     if user_data:
-        status = user_data.get('status')
-        current_expire = user_data.get('expire') or now_ts
-        if status in ('expired', 'active', 'limited'):
-            if status == 'expired' or current_expire < now_ts:
-                new_expire = now_ts + (day * 24 * 60 * 60)
-            else:
-                new_expire = current_expire + (day * 24 * 60 * 60)
-            success = await marzban_api.update_user(user_name, new_expire, data_limit, tariff)
+        new_expire = calculate_new_expire(user_data.get('expire'), day)
+        success = await marzban_api.update_user(user_name, new_expire, data_limit, tariff)
     else:
         success = await marzban_api.create_user(user_name, day, tariff, data_limit, 'active')
 
@@ -123,3 +117,9 @@ async def successful_payment(bot: Bot, user_id: int, tariff: str, day: int, paym
         await bot.send_message(chat_id=user_id,
                                text=PAYMENT_FAILED_TEXT,
                                reply_markup=get_failed_payment_kb())
+
+def calculate_new_expire(expire: int, day: int):
+    now_expire = int(datetime.now(timezone.utc).timestamp())
+    if not expire or expire < now_expire:
+        return now_expire + (day * 24 * 60 * 60)
+    return expire + (day * 24 * 60 * 60)

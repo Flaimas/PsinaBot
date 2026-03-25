@@ -76,3 +76,16 @@ def get_create_payment_error_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text='Главное меню', callback_data='start'))
     return builder.as_markup()
+
+def get_sub_menu_kb(tariff):
+    builder = InlineKeyboardBuilder()
+
+    if tariff == 'TRIAL':
+        builder.row(InlineKeyboardButton(text="Изменить тариф", callback_data='new_tariff'))
+    else:
+        builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data='add_days'),
+                    InlineKeyboardButton(text="Изменить тариф", callback_data='new_tariff'))
+
+    builder.row(InlineKeyboardButton(text="Получить ссылку", callback_data='get_link'))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+    return builder.as_markup()

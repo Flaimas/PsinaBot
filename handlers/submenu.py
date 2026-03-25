@@ -4,19 +4,20 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from services.marzban import marzban_api
 from services.utils import days_left, traffic_left, SUB_STATUS
 from prices import PRICES
+from utils.keyboards import get_sub_menu_kb
+from utils.text import NO_SUB_TEXT, SUB_MENU_MAIN_TEXT
 
 router = Router()
 
 @router.callback_query(F.data == 'menu_sub')
 async def menu_sub(callback: CallbackQuery):
     await callback.answer()
-    user_id = f"tg_{callback.from_user.id}"
+    tg_id = callback.from_user.id
+    user_id = f"tg_{tg_id}"
     user_info = await marzban_api.get_user_info(user_id)
     if not user_info:
-        await callback.message.edit_text(
-            "У вас нет активной подписки!",
-            reply_markup=get_no_sub_menu() # кнопка "Купить"
-        )
+        await callback.message.edit_text(text=NO_SUB_TEXT,
+                                         eply_markup=get_no_sub_menu())
         return
     tariff = user_info.get('note')
     expire = user_info.get("expire")
@@ -27,29 +28,16 @@ async def menu_sub(callback: CallbackQuery):
         days = max(0, days_left(expire))
 
     traffic = traffic_left(user_info["data_limit"], user_info['used_traffic'])
-    status = user_info.get('status')  # всего два положения, временный костыль, нужно будет создать функцию
+    status = user_info.get('status')
     sub_status = SUB_STATUS.get(status, None)
 
-    text = (
-        f"Подписка {user_info['note']}!\n"
-        f"<blockquote>Ваш ID: <code>{callback.from_user.id}</code>\n"
-        f"Статус подписки: {sub_status}\n"
-        f"Дней осталось: {days}\n"
-        f"Трафик: {traffic}</blockquote>"
-    )
-    await callback.message.edit_text(text=text, reply_markup=get_sub_menu(tariff), parse_mode="html")
-
-def get_sub_menu(tariff):
-    builder = InlineKeyboardBuilder()
-    if tariff == 'TRIAL':
-        builder.row(InlineKeyboardButton(text="Изменить тариф", callback_data='new_tariff'))
-    else:
-        builder.row(InlineKeyboardButton(text="Продлить подписку", callback_data='add_days'),
-                    InlineKeyboardButton(text="Изменить тариф", callback_data='new_tariff'))
-
-    builder.row(InlineKeyboardButton(text="Получить ссылку", callback_data='get_link'))
-    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
-    return builder.as_markup()
+    await callback.message.edit_text(text=SUB_MENU_MAIN_TEXT.format(user_info=tariff,
+                                                                    tg_id=tg_id,
+                                                                    sub_status=sub_status,
+                                                                    days=days,
+                                                                    traffic=traffic),
+                                     reply_markup=get_sub_menu_kb(tariff),
+                                     parse_mode="html")
 
 def get_no_sub_menu():
     builder = InlineKeyboardBuilder()
@@ -61,8 +49,9 @@ def get_no_sub_menu():
 @router.callback_query(F.data == 'add_days')
 async def add_days(callback: CallbackQuery):
     await callback.answer()
-    user_id = f"tg_{callback.from_user.id}"
-    user_info = await marzban_api.get_user_info(user_id)
+    tg_id = callback.from_user.id
+    user_name = f"tg_{tg_id}"
+    user_info = await marzban_api.get_user_info(user_name)
 
     if not user_info:
         await callback.message.edit_text("У вас нет активной подписки!", reply_markup=get_no_sub_menu())
