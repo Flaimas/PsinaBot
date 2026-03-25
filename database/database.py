@@ -136,11 +136,11 @@ async def set_notified(user_id, notification):
         )
         await db.commit()
 
-async def create_transaction(tg_id: int, amount: float, tariff_name: str, payment_id: str):
+async def create_transaction(tg_id: int, amount: float, tariff_name: str, day: int, payment_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            'INSERT INTO transactions (tg_id, amount, tariff_name, payment_id)'
-            'VALUES (?, ?, ?, ?)', (tg_id, amount, tariff_name, payment_id)
+            'INSERT INTO transactions (tg_id, amount, tariff_name, day, payment_id)'
+            'VALUES (?, ?, ?, ?, ?)', (tg_id, amount, tariff_name, day, payment_id)
         )
         await db.commit()
 
@@ -153,3 +153,32 @@ async def get_active_transaction(tg_id: int, tariff_name: str, day: int):
             (tg_id, tariff_name, day)
         )
         return await cursor.fetchone()
+
+async def succeeded_transaction(payment_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            'SELECT tg_id, tariff_name, day, status FROM transactions '
+            'WHERE payment_id = ?', (payment_id,)
+        )
+
+        row = await cursor.fetchone()
+        if row and row[3] == 'pending':
+            tg_id, tariff_name, day = row[0], row[1], row[2]
+
+            await db.execute(
+                'UPDATE transactions SET status = "succeeded", paid_at = CURRENT_TIMESTAMP '
+                'WHERE payment_id = ?', (payment_id,)
+            )
+            await db.commit()
+
+            return tg_id, tariff_name, day
+
+        return None
+
+async def issued_subscription(payment_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE transactions SET status = 'issued' WHERE payment_id = ?",
+            (payment_id,)
+        )
+        await db.commit()
