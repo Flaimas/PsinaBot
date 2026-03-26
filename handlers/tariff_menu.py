@@ -20,7 +20,11 @@ async def tariff_menu(callback: CallbackQuery):
             user_status = user_info.get('status')
 
             if user_status not in ['expire', 'on_hold'] and user_tariff != "TRIAL":
-                return await callback.message.edit_text(text=EXISTING_TARIFF_TEXT, reply_markup=get_tariff_menu_existing_kb(), parse_mode='HTML')
+                return await callback.message.edit_text(
+                    text=EXISTING_TARIFF_TEXT,
+                    reply_markup=get_tariff_menu_existing_kb(),
+                    parse_mode='HTML'
+                )
 
     except Exception as e:
         print(f"Ошибка API! Чертов марзбан лег: {e}")
@@ -37,4 +41,8 @@ async def tariff_menu(callback: CallbackQuery):
 async def period_menu(callback: CallbackQuery):
     await callback.answer()
     tariff = callback.data.split('_')[1]
-    await callback.message.edit_text(text=PERIOD_MENU_TEXT, reply_markup=get_period_menu_kb(tariff))
+    await callback.message.edit_text(
+        text=PERIOD_MENU_TEXT,
+        reply_markup=get_period_menu_kb(tariff),
+        parse_mode="HTML"
+    )

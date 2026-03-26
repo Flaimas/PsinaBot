@@ -20,9 +20,11 @@ async def start_handler(message: Message, command: CommandObject):
     is_new = await check_or_register_user(user_id, user_name, referrer_id)
 
     if is_new and referrer_id:
-        await message.answer(text=NEW_USER_TEXT.format(referrer_id=referrer_id),
-                             reply_markup=get_new_user_kb())
-        return
+        return await message.answer(
+            text=NEW_USER_TEXT.format(referrer_id=referrer_id),
+            reply_markup=get_new_user_kb(),
+            parse_mode = "HTML"
+        )
 
     user_data = await marzban_api.get_user_info(f'tg_{user_id}')
     status = user_data.get('status') if user_data else None

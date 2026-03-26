@@ -18,7 +18,8 @@ async def menu_sub(callback: CallbackQuery):
     if not user_info:
         await callback.message.edit_text(
             text=NO_SUB_TEXT,
-            eply_markup=get_no_sub_menu_kb()
+            eply_markup=get_no_sub_menu_kb(),
+            parse_mode="HTML"
         )
         return
     tariff = user_info.get('note')
@@ -43,7 +44,7 @@ async def menu_sub(callback: CallbackQuery):
             traffic=traffic
         ),
         reply_markup=get_sub_menu_kb(tariff),
-        parse_mode="html"
+        parse_mode="HTML"
     )
 
 @router.callback_query(F.data == 'get_link')
