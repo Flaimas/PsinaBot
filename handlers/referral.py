@@ -15,8 +15,13 @@ async def referral_handler(callback: CallbackQuery):
     count_ref = await get_count_referrals(user_id)
     reward_balance = await get_reward_balance(user_id)
 
-    await callback.message.edit_text(text=REFERRAL_HANDLER_TEXT.format(link=link,
-                                                                       count_ref=count_ref,
-                                                                       reward_balance=reward_balance),
-                                     reply_markup=get_referral_kb(link),
-                                     parse_mode="HTML")
+    await callback.message.edit_text(
+        text=REFERRAL_HANDLER_TEXT.format(
+
+            link=link,
+            count_ref=count_ref,
+            reward_balance=reward_balance
+        ),
+
+        reply_markup=get_referral_kb(link),
+        parse_mode="HTML")

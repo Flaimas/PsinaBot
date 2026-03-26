@@ -103,20 +103,25 @@ async def successful_payment(bot: Bot, user_id: int, tariff: str, day: int, paym
         if reward_amount > 0 and referrer_id:
             await add_reward(reward_amount, referrer_id)
             try:
-                await bot.send_message(referrer_id,
-                                       text=ADD_REWARD_TEXT.format(reward_amount=reward_amount),
-                                       reply_markup=get_add_reward_kb()
-                                       )
+                await bot.send_message(
+                    referrer_id,
+                    text=ADD_REWARD_TEXT.format(reward_amount=reward_amount),
+                    reply_markup=get_add_reward_kb()
+                )
             except Exception:
                 pass
 
-        await bot.send_message(chat_id=user_id,
-                               text=PAYMENT_SUCCESS_TEXT.format(tariff=tariff, day=day),
-                               reply_markup=get_success_payment_kb())
+        await bot.send_message(
+            chat_id=user_id,
+            text=PAYMENT_SUCCESS_TEXT.format(tariff=tariff, day=day),
+            reply_markup=get_success_payment_kb()
+        )
     else:
-        await bot.send_message(chat_id=user_id,
-                               text=PAYMENT_FAILED_TEXT,
-                               reply_markup=get_failed_payment_kb())
+        await bot.send_message(
+            chat_id=user_id,
+            text=PAYMENT_FAILED_TEXT,
+            reply_markup=get_failed_payment_kb()
+        )
 
 def calculate_new_expire(expire: int, day: int):
     now_expire = int(datetime.now(timezone.utc).timestamp())
