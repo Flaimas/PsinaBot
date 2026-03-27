@@ -62,7 +62,7 @@ SUB_MENU_MAIN_TEXT = (
     "<blockquote>ID: <code>{tg_id}</code>\n"
     "Тариф: {user_info}\n"
     "Статус: {sub_status}\n"
-    "Осталось времени: {days}\n"
+    "Осталось дней: {days}\n"
     "Доступный трафик: {traffic}</blockquote>"
 )
 
