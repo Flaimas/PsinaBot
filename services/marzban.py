@@ -59,7 +59,10 @@ class MarzbanAPI:
                 }
             },
             'inbounds': {
-                'vless': ['VLESS TCP TLS']
+                'vless': [
+                    'VLESS TCP REALITY',
+                    'VLESS TCP TLS',
+                ]
             }
         }
         resp_status, data = await self._request('post', f'{self.url}/api/user', json=data)
