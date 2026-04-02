@@ -1,3 +1,13 @@
+MENU_IMAGES = {
+    'start': 'img/main_menu.png'
+}
+
+TEXT_START_MENU = (
+    "Привет, {user_name}!\n"
+    "<blockquote>Ваш ID: <code>{user_id}</code>\n"
+    "Статус подписки: {icon_status}</blockquote>"
+)
+
 TRIAL_ERROR_TEXT = (
     "<b>Ошибка</b>\n\n"
     "Вы уже использовали пробный период.\n"

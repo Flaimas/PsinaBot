@@ -1,12 +1,13 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, CommandObject
-from aiogram.types import Message,CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
 from database.database import check_or_register_user, check_use_trial, set_trial_used, get_referrer
 from services.marzban import marzban_api
 from services.utils import SUB_STATUS
 from utils.keyboards import get_trial_error_kb, get_trial_success_kb, get_menu_trial_kb, get_start_kb, \
     get_trial_tech_error_kb, get_new_user_kb
-from utils.text import TRIAL_ERROR_TEXT, TRIAL_SUCCESS_TEXT, ERROR_TECH_TEXT, MENU_TRIAL_TEXT, NEW_USER_TEXT
+from utils.text import TRIAL_ERROR_TEXT, TRIAL_SUCCESS_TEXT, ERROR_TECH_TEXT, MENU_TRIAL_TEXT, NEW_USER_TEXT, \
+    MENU_IMAGES, TEXT_START_MENU
 
 router = Router()
 
@@ -20,8 +21,9 @@ async def start_handler(message: Message, command: CommandObject):
     is_new = await check_or_register_user(user_id, user_name, referrer_id)
 
     if is_new and referrer_id:
-        return await message.answer(
-            text=NEW_USER_TEXT.format(referrer_id=referrer_id),
+        return await message.answer_photo(
+            photo=FSInputFile(MENU_IMAGES.get('start')),
+            caption=NEW_USER_TEXT.format(referrer_id=referrer_id),
             reply_markup=get_new_user_kb(),
             parse_mode = "HTML"
         )
@@ -30,8 +32,11 @@ async def start_handler(message: Message, command: CommandObject):
     status = user_data.get('status') if user_data else None
 
     sub_status_icon = SUB_STATUS.get(status)
-    await message.answer(
-        **text_start_menu(user_name, user_id, sub_status_icon, status)
+    await message.answer_photo(
+        photo=FSInputFile(MENU_IMAGES.get('start')),
+        caption=TEXT_START_MENU.format(user_name=user_name, user_id=user_id, icon_status=sub_status_icon),
+        parse_mode='HTML',
+        reply_markup=get_start_kb(status)
     )
 
 @router.callback_query(F.data == "start")
@@ -45,28 +50,19 @@ async def start_cb_handler(callback: CallbackQuery):
         status = user_data.get('status')
     else:
         status = None
-    sub_status = SUB_STATUS.get(status)
+    sub_status_icon = SUB_STATUS.get(status)
 
-    await callback.message.edit_text(
-        **text_start_menu(user_name, user_id, sub_status, status)
+    photo = FSInputFile(MENU_IMAGES.get('start'))
+    media = InputMediaPhoto(
+        media=photo,
+        caption=TEXT_START_MENU.format(user_name=user_name, user_id=user_id, icon_status=sub_status_icon),
+        parse_mode='HTML',
     )
 
-def text_start_menu(user_name, user_id, icon_status, sub_status):
-    img_url = "https://i.pinimg.com/736x/e0/10/3e/e0103eba76f37d3d765ca10babf9b34a.jpg"
-    # Скрытая ссылка через HTML: пустой символ с гиперссылкой
-    hidden_link = f'<a href="{img_url}">&#8203;</a>'
-    text = (
-        f"{hidden_link}"
-        f"Привет, {user_name}!\n"
-        f"<blockquote>Ваш ID: <code>{user_id}</code>\n"
-        f"Статус подписки: {icon_status}</blockquote>"
+    await callback.message.edit_media(
+        media=media,
+        reply_markup=get_start_kb(status)
     )
-    # Возвращаем словарь со всеми аргументами
-    return {
-        "text": text,
-        "reply_markup": get_start_kb(sub_status),
-        "parse_mode": "HTML"
-    }
 
 @router.callback_query(F.data == 'menu_trial')
 async def menu_trial(callback: CallbackQuery):
