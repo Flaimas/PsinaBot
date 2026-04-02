@@ -63,7 +63,7 @@ SUB_MENU_MAIN_TEXT = (
     "Тариф: {user_info}\n"
     "Статус: {sub_status}\n"
     "Осталось дней: {days}\n"
-    "Доступный трафик: {traffic}</blockquote>"
+    "Израсходованный трафик: {traffic}</blockquote>"
 )
 
 SUB_LIST_TEXT = (

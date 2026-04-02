@@ -66,7 +66,7 @@ async def instruction(callback: CallbackQuery):
 INSTRUCTIONS = {
     "ios": (
         "<b>Настройка на iOS</b>\n\n"
-        "1. Установите приложение <a href='https://apps.apple.com/ru/app/v2raytun/id6476628951'>v2RayTun</a> из App Store.\n"
+        "1. Установите приложение <a href='https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973'>Happ Plus</a> из App Store.\n"
         "2. Скопируйте вашу ссылку доступа в боте.\n"
         "3. В приложении нажмите <b>«+»</b> в правом верхнем углу.\n"
         "4. Выберите пункт <b>«Импорт из буфера обмена»</b>.\n"
@@ -93,7 +93,7 @@ INSTRUCTIONS = {
 
     "mac_os": (
         "<b>Настройка на macOS</b>\n\n"
-        "1. Установите <a href='https://apps.apple.com/ru/app/v2raytun/id6476628951'>v2RayTun</a> из App Store.\n"
+        "1. Установите <a href='https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973'>Happ Plus</a> из App Store.\n"
         "2. Скопируйте вашу ссылку доступа в боте.\n"
         "3. В приложении нажмите <b>«+»</b> в верхнем углу.\n"
         "4. Выберите <b>«Импорт из буфера обмена»</b>.\n"

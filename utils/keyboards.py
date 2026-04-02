@@ -21,7 +21,7 @@ def get_trial_error_kb():
 
 def get_trial_success_kb():
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="🔗 Получить ссылку", callback_data='get_link'))
+    builder.row(InlineKeyboardButton(text="🔗 Получить подписку", callback_data='get_link'))
     builder.row(InlineKeyboardButton(text="Инструкции", callback_data='instruction'))
     return builder.as_markup()
 
@@ -101,7 +101,7 @@ def get_create_payment_error_kb():
 
 def get_sub_menu_kb(tariff):
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="🔗 Получить ссылку", callback_data='get_link'))
+    builder.row(InlineKeyboardButton(text="🔗 Получить подписку", callback_data='get_link'))
 
     if tariff == 'TRIAL':
         builder.row(InlineKeyboardButton(text="Выбрать основной тариф", callback_data='tariff_menu'))
@@ -182,7 +182,7 @@ def get_instructions_kb():
 
 def get_app_install_kb():
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="🔗 Получить ссылку", callback_data='get_link'))
+    builder.row(InlineKeyboardButton(text="🔗 Получить подписку", callback_data='get_link'))
     builder.row(
         InlineKeyboardButton(text="« Назад", callback_data="instruction"),
         InlineKeyboardButton(text="🏠 В меню", callback_data="start")
