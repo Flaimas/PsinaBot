@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery
 
 from prices import PRICES
 from services.payment import get_or_create_payment
+from services.utils import get_media
 from utils.keyboards import get_create_payment_kb, get_create_payment_error_kb
 from utils.text import CREATE_PAYMENT_TEXT, CREATE_PAYMENT_ERROR_TEXT
 
@@ -25,15 +26,18 @@ async def payment(callback: CallbackQuery):
     )
 
     if payment_url:
-        await callback.message.edit_text(
-            text=CREATE_PAYMENT_TEXT.format(tariff=tariff, day=day, amount=PRICES.get(tariff).get(str(day))),
-            reply_markup=get_create_payment_kb(payment_url, tariff),
-            parse_mode = "HTML"
+        caption = CREATE_PAYMENT_TEXT.format(
+            tariff=tariff,
+            day=day,
+            amount=PRICES.get(tariff).get(str(day))
+        )
+        await callback.message.edit_media(
+            media=get_media('pay_menu', caption=caption),
+            reply_markup=get_create_payment_kb(payment_url, tariff)
         )
     else:
-        await callback.message.edit_text(
-            text=CREATE_PAYMENT_ERROR_TEXT,
+        await callback.message.edit_media(
+            media=get_media('error_pay',caption=CREATE_PAYMENT_ERROR_TEXT),
             reply_markup=get_create_payment_error_kb(),
-            parse_mode = "HTML"
         )
         logging.error(f'Ошибка! URL для оплаты не был создан!')

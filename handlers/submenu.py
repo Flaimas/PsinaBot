@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import InlineKeyboardButton, CallbackQuery, CopyTextButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from services.marzban import marzban_api
-from services.utils import days_left, traffic_left, SUB_STATUS
+from services.utils import days_left, traffic_left, SUB_STATUS, get_media
 from prices import PRICES
 from utils.keyboards import get_sub_menu_kb, get_no_sub_menu_kb, get_link_kb
 from utils.text import NO_SUB_TEXT, SUB_MENU_MAIN_TEXT, GET_LINK_TEXT
@@ -16,10 +16,9 @@ async def menu_sub(callback: CallbackQuery):
     user_id = f"tg_{tg_id}"
     user_info = await marzban_api.get_user_info(user_id)
     if not user_info:
-        await callback.message.edit_text(
-            text=NO_SUB_TEXT,
-            eply_markup=get_no_sub_menu_kb(),
-            parse_mode="HTML"
+        await callback.message.edit_media(
+            media=get_media('sub_menu', NO_SUB_TEXT),
+            reply_markup=get_no_sub_menu_kb()
         )
         return
     tariff = user_info.get('note')
@@ -34,17 +33,19 @@ async def menu_sub(callback: CallbackQuery):
     status = user_info.get('status')
     sub_status = SUB_STATUS.get(status, None)
 
-    await callback.message.edit_text(
-        text=SUB_MENU_MAIN_TEXT.format(
+    media = get_media('sub_menu',
+            caption=SUB_MENU_MAIN_TEXT.format(
+                user_info=tariff,
+                tg_id=tg_id,
+                sub_status=sub_status,
+                days=days,
+                traffic=traffic
+        )
+        )
 
-            user_info=tariff,
-            tg_id=tg_id,
-            sub_status=sub_status,
-            days=days,
-            traffic=traffic
-        ),
+    await callback.message.edit_media(
+        media=media,
         reply_markup=get_sub_menu_kb(tariff),
-        parse_mode="HTML"
     )
 
 @router.callback_query(F.data == 'get_link')
@@ -56,8 +57,7 @@ async def get_link(callback: CallbackQuery):
     sub_link = user_data.get('subscription_url')
 
     if sub_link:
-        await callback.message.edit_text(
-            text=GET_LINK_TEXT.format(sub_link=sub_link),
+        await callback.message.edit_media(
+            media=get_media('link_menu', caption=GET_LINK_TEXT.format(sub_link=sub_link)),
             reply_markup=get_link_kb(sub_link),
-            parse_mode = 'HTML'
         )

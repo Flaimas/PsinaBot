@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 
+from services.utils import get_media
 from utils.keyboards import get_instructions_kb, get_app_install_kb
 from utils.text import INSTRUCTION_HANDLER_TEXT
 
@@ -10,10 +11,9 @@ router = Router()
 async def instruction(callback: CallbackQuery):
     await callback.answer()
 
-    await callback.message.edit_text(
-        INSTRUCTION_HANDLER_TEXT,
+    await callback.message.edit_media(
+        media=get_media('instructions_menu',INSTRUCTION_HANDLER_TEXT),
         reply_markup=get_instructions_kb(),
-        parse_mode="HTML"
     )
 
 # INSTRUCTIONS = {
@@ -114,4 +114,7 @@ INSTRUCTIONS = {
 async def app_install(callback: CallbackQuery):
     await callback.answer()
     text = INSTRUCTIONS[callback.data]
-    await callback.message.edit_text(text=text, parse_mode="HTML", reply_markup=get_app_install_kb())
+    await callback.message.edit_media(
+        media=get_media('instructions_menu', caption=text),
+        reply_markup=get_app_install_kb()
+    )

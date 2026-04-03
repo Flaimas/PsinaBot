@@ -1,9 +1,9 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, CommandObject
-from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
+from aiogram.types import Message, CallbackQuery, FSInputFile
 from database.database import check_or_register_user, check_use_trial, set_trial_used, get_referrer
 from services.marzban import marzban_api
-from services.utils import SUB_STATUS
+from services.utils import SUB_STATUS, get_media
 from utils.keyboards import get_trial_error_kb, get_trial_success_kb, get_menu_trial_kb, get_start_kb, \
     get_trial_tech_error_kb, get_new_user_kb
 from utils.text import TRIAL_ERROR_TEXT, TRIAL_SUCCESS_TEXT, ERROR_TECH_TEXT, MENU_TRIAL_TEXT, NEW_USER_TEXT, \
@@ -22,7 +22,7 @@ async def start_handler(message: Message, command: CommandObject):
 
     if is_new and referrer_id:
         return await message.answer_photo(
-            photo=FSInputFile(MENU_IMAGES.get('start')),
+            photo=MENU_IMAGES.get('start'),
             caption=NEW_USER_TEXT.format(referrer_id=referrer_id),
             reply_markup=get_new_user_kb(),
             parse_mode = "HTML"
@@ -33,7 +33,7 @@ async def start_handler(message: Message, command: CommandObject):
 
     sub_status_icon = SUB_STATUS.get(status)
     await message.answer_photo(
-        photo=FSInputFile(MENU_IMAGES.get('start')),
+        photo=MENU_IMAGES.get('start'),
         caption=TEXT_START_MENU.format(user_name=user_name, user_id=user_id, icon_status=sub_status_icon),
         parse_mode='HTML',
         reply_markup=get_start_kb(status)
@@ -52,12 +52,11 @@ async def start_cb_handler(callback: CallbackQuery):
         status = None
     sub_status_icon = SUB_STATUS.get(status)
 
-    photo = FSInputFile(MENU_IMAGES.get('start'))
-    media = InputMediaPhoto(
-        media=photo,
-        caption=TEXT_START_MENU.format(user_name=user_name, user_id=user_id, icon_status=sub_status_icon),
-        parse_mode='HTML',
-    )
+    media = get_media('start', caption=TEXT_START_MENU.format(
+        user_name=user_name,
+        user_id=user_id,
+        icon_status=sub_status_icon)
+        )
 
     await callback.message.edit_media(
         media=media,
@@ -67,10 +66,10 @@ async def start_cb_handler(callback: CallbackQuery):
 @router.callback_query(F.data == 'menu_trial')
 async def menu_trial(callback: CallbackQuery):
     await callback.answer()
-    await callback.message.edit_text(text=MENU_TRIAL_TEXT,
-                                     reply_markup=get_menu_trial_kb(),
-                                     parse_mode="HTML")
-
+    await callback.message.edit_media(
+        media=get_media('menu_trial', caption=MENU_TRIAL_TEXT),
+        reply_markup=get_menu_trial_kb(),
+        )
 
 @router.callback_query(F.data == 'trial_subscription')
 async def trial_subscription(callback: CallbackQuery):
@@ -78,10 +77,9 @@ async def trial_subscription(callback: CallbackQuery):
     user_id = callback.from_user.id
 
     if await check_use_trial(user_id):
-        return await callback.message.edit_text(
-            text=TRIAL_ERROR_TEXT,
+        return await callback.message.edit_media(
+            media=get_media('error', caption=TRIAL_ERROR_TEXT),
             reply_markup=get_trial_error_kb(),
-            parse_mode='HTML'
         )
 
     if await get_referrer(user_id):
@@ -92,23 +90,34 @@ async def trial_subscription(callback: CallbackQuery):
             await marzban_api.update_referrer_sub(referrer_id)
 
             await callback.bot.send_message(referrer_id, 'Реферал активировал пробную подписку, вы получили дополнительные 7 дней к своей подписке')
-            return await callback.message.edit_text(
-                text=TRIAL_SUCCESS_TEXT,
+
+            return await callback.message.edit_media(
+                media=get_media('trial_sub', caption=TRIAL_SUCCESS_TEXT),
                 reply_markup=get_trial_success_kb(),
-                parse_mode='HTML'
             )
-        return await callback.message.edit_text(text=ERROR_TECH_TEXT,
-                                      reply_markup=get_trial_tech_error_kb(),
-                                      parse_mode='HTML')
+        return await callback.message.edit_media(
+            media=get_media('error',caption=ERROR_TECH_TEXT),
+            reply_markup=get_trial_tech_error_kb(),
+        )
 
     if await marzban_api.create_user(f'tg_{user_id}', 3, 'TRIAL', 6442450944):
         await set_trial_used(user_id)
-        await callback.message.edit_text(
-            text=TRIAL_SUCCESS_TEXT,
+        await callback.message.edit_media(
+            media=get_media('trial_sub', caption=TRIAL_SUCCESS_TEXT),
             reply_markup=get_trial_success_kb(),
-            parse_mode='HTML'
         )
     else:
-        await callback.message.answer(text=ERROR_TECH_TEXT,
-                                      reply_markup=get_trial_tech_error_kb(),
-                                      parse_mode='HTML')
+        photo = MENU_IMAGES.get('error')
+        await callback.message.answer_photo(
+            photo=photo,
+            caption=ERROR_TECH_TEXT,
+            reply_markup=get_trial_tech_error_kb(),
+            parse_mode='HTML')
+
+
+@router.message(F.photo)
+async def get_photo_id(message: Message):
+    # message.photo — это список разных размеров одного фото.
+    # Последний элемент [-1] — самый качественный.
+    photo_id = message.photo[-1].file_id
+    await message.answer(f"<code>{photo_id}</code>", parse_mode="HTML")
