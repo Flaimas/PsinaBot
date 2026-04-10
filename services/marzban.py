@@ -44,14 +44,16 @@ class MarzbanAPI:
             return ''.join(data['links'])
         return f"Error: {status}!"
 
-    async def create_user(self, username: str, days: int, tariff: str, data_limit: int = 214748364800, status: str = "active"):
+    async def create_user(self, username: str, days: int, tariff: str, data_limit: int = 214748364800,
+                          status: str = "active", data_limit_reset_strategy: str = "month"):
+
         utc_days = self.get_expire_timestamp(days)
         data = {
             'username': username,
             'expire': utc_days,
             'data_limit': data_limit,
             'status': status,
-            "data_limit_reset_strategy": "month",
+            "data_limit_reset_strategy": data_limit_reset_strategy,
             'note': tariff,
             'proxies': {
                 'vless': {
@@ -87,16 +89,18 @@ class MarzbanAPI:
         return None
 
     async def update_user(self, username: str, expire: int, data_limit: int, tariff: str,
-                          data_limit_reset_strategy: str = 'month'):
-        user_data = await self.get_user_info(username)
-        if user_data:
-            user_data['expire'] = expire
-            user_data['data_limit'] = data_limit
-            user_data['note'] = tariff
-            user_data['data_limit_reset_strategy'] = data_limit_reset_strategy
-        else:
-            return False
-        status, data = await self._request('put', f'{self.url}/api/user/{username}', json=user_data)
+                          reset_strategy: str = 'month'):
+        payload = {
+            "expire": expire,
+            "data_limit": data_limit,
+            "data_limit_reset_strategy": reset_strategy,
+            "note": tariff,
+        }
+        status, data = await self._request('put', f'{self.url}/api/user/{username}', json=payload)
+        return status == 200
+
+    async def reset_user_traffic(self, username: str):
+        status, data = await self._request('post', f'{self.url}/api/user/{username}/reset')
         return status == 200
 
     async def update_referrer_sub(self, tg_id: int):
