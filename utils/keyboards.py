@@ -188,3 +188,16 @@ def get_app_install_kb():
         InlineKeyboardButton(text="🏠 В меню", callback_data="start")
     )
     return builder.as_markup()
+
+def get_admin_panel_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Подписка на сутки", callback_data='tg_access'), InlineKeyboardButton(text="Логи", callback_data='logs'))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+    return builder.as_markup()
+
+def get_tg_access_kb(access_link):
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Скопировать", copy_text=CopyTextButton(text=access_link)))
+    builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data='admin'))
+    return builder.as_markup()
