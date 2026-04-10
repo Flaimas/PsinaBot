@@ -1,7 +1,4 @@
-from itertools import count
-
 import aiosqlite
-
 from config import DB_PATH
 
 async def create_db():
