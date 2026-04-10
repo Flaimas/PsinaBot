@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()  # Загружает переменные из .env
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID")
+
+admin_row = os.getenv("ADMIN_IDS", "")
+ADMIN_IDS = [int(admin_id) for admin_id in admin_row.split(',') if admin_id]
+
 SUPPORT_URL = os.getenv("SUPPORT_URL")
 
 MARZBAN_URL = os.getenv("MARZBAN_URL") #url site
