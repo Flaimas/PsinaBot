@@ -18,7 +18,8 @@ async def admin(message: Message):
 @router.callback_query(F.data == 'admin', F.from_user.id.in_(ADMIN_IDS))
 async def admin_denied(callback: CallbackQuery):
     await callback.message.edit_text("<b>Админ панель.</b>",
-                                     reply_markup=get_admin_panel_kb())
+                                     reply_markup=get_admin_panel_kb(),
+                                     parse_mode='HTML')
 
 @router.callback_query(F.data == 'tg_access')
 async def tg_access(callback: CallbackQuery):
