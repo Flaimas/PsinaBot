@@ -201,3 +201,8 @@ def get_tg_access_kb(access_link):
     builder.row(InlineKeyboardButton(text="Главное меню", callback_data='start'))
     builder.row(InlineKeyboardButton(text="Назад", callback_data='admin'))
     return builder.as_markup()
+
+def get_notification_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Админ-панель", callback_data='admin'))
+    return builder.as_markup()

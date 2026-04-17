@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone, timedelta
 from aiogram import Bot
-from config import ACCOUNT_ID, SECRET_KEY, REFERRAL_REWARD_RATIO
+from config import ACCOUNT_ID, SECRET_KEY, REFERRAL_REWARD_RATIO, ADMIN_IDS
 from database.database import get_referrer, add_reward, create_transaction, get_active_transaction, issued_subscription
 from prices import PRICES
 from services.marzban import marzban_api
@@ -9,8 +9,8 @@ from services.marzban import marzban_api
 import uuid
 from yookassa import Payment, Configuration
 
-from utils.keyboards import get_success_payment_kb, get_failed_payment_kb, get_add_reward_kb
-from utils.text import PAYMENT_SUCCESS_TEXT, PAYMENT_FAILED_TEXT, ADD_REWARD_TEXT
+from utils.keyboards import get_success_payment_kb, get_failed_payment_kb, get_add_reward_kb, get_notification_kb
+from utils.text import PAYMENT_SUCCESS_TEXT, PAYMENT_FAILED_TEXT, ADD_REWARD_TEXT, NOTIFICATION_BUY_SUB_TEXT
 
 Configuration.account_id = ACCOUNT_ID
 Configuration.secret_key = SECRET_KEY
@@ -116,6 +116,20 @@ async def successful_payment(bot: Bot, user_id: int, tariff: str, day: int, paym
             text=PAYMENT_SUCCESS_TEXT.format(tariff=tariff, day=day),
             reply_markup=get_success_payment_kb()
         )
+
+        if ADMIN_IDS:
+            try:
+                sub_status = 'продлил' if user_data else 'приобрел'
+                await bot.send_message(
+                    chat_id=ADMIN_IDS[0],
+                    text=NOTIFICATION_BUY_SUB_TEXT.format(user=user_id, sub_status=sub_status),
+                    reply_markup=get_notification_kb()
+                )
+            except Exception as e:
+                logging.error(f'Ошибка при уведомлении админа для юзера {user_id}: {e}', exc_info=True)
+        else:
+            logging.warning("Список ADMIN_IDS пуст, уведомление не отправлено.")
+
     else:
         await bot.send_message(
             chat_id=user_id,
