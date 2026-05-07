@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  psina-bot:
+    build: .
+    restart: always
+    env_file: .env
+    ports:
+      - "8001:8001"
+    volumes:
+      - .data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

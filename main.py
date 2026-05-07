@@ -48,9 +48,7 @@ async def main():
     config = uvicorn.Config(app,
                             host=UVICORN_IP,
                             port=UVICORN_PORT,
-                            loop='asyncio',
-                            ssl_certfile=SSL_CER,
-                            ssl_keyfile=SSL_KEY)
+                            loop='asyncio')
 
     server = uvicorn.Server(config)
     await asyncio.gather(

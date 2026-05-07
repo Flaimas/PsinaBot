@@ -1,0 +1,8 @@
+__pycache__
+.idea/
+*.iml
+.env
+.git
+venv/
+.venv
+data/orders.db
