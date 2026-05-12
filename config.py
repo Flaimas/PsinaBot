@@ -1,27 +1,26 @@
-import os
+from decouple import config
 from dotenv import load_dotenv
 
-load_dotenv()  # Загружает переменные из .env
+load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = config("BOT_TOKEN", default='')
+ADMIN_IDS = config("ADMIN_IDS",
+                   cast=lambda v: [int(i) for i in v.split(',') if i.strip().isdigit()] if v else [],
+                   default=[])
 
-admin_row = os.getenv("ADMIN_IDS", "")
-ADMIN_IDS = [int(admin_id) for admin_id in admin_row.split(',') if admin_id]
+SUPPORT_URL = config("SUPPORT_URL", default='pip install pipreqs')
 
-SUPPORT_URL = os.getenv("SUPPORT_URL")
+MARZBAN_URL = config("MARZBAN_URL", default='') #url site
+MARZBAN_USERNAME = config("MARZBAN_USERNAME", default='')
+MARZBAN_PASSWORD = config("MARZBAN_PASSWORD", default='')
 
-MARZBAN_URL = os.getenv("MARZBAN_URL") #url site
-MARZBAN_USERNAME = os.getenv("MARZBAN_USERNAME")
-MARZBAN_PASSWORD = os.getenv("MARZBAN_PASSWORD")
+SECRET_KEY = config("SECRET_KEY", default='')
+ACCOUNT_ID = config("ACCOUNT_ID", default='')
 
-PAYMENT_TOKEN = os.getenv("PAYMENT_TOKEN")
-SECRET_KEY = os.getenv("SECRET_KEY")
-ACCOUNT_ID = os.getenv("ACCOUNT_ID")
+DB_PATH = config("DB_PATH", default='data/orders.db')
+PROXY_URL = config("PROXY_URL", default=None)
 
-DB_PATH = os.getenv("DB_PATH")
-PROXY_URL = os.getenv("PROXY_URL")
-
-UVICORN_IP = os.getenv('UVICORN_IP') #данные для webhook
-UVICORN_PORT = int(os.getenv('UVICORN_PORT'))
+UVICORN_IP = config('UVICORN_IP', default='127.0.0.1') #данные для webhook
+UVICORN_PORT = config('UVICORN_PORT', cast=int, default=8000)
 
 REFERRAL_REWARD_RATIO = 0.1 #процент награды, начисляющийся реферерру

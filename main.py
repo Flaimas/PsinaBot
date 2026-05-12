@@ -5,7 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from services.scheduler import check_vpn_expire, check_expire_users
 from handlers import start, help, submenu, instructions, referral, payment, tariff_menu, admin
 from database.database import create_db
-from config import UVICORN_IP, UVICORN_PORT, SSL_KEY, SSL_CER
+from config import UVICORN_IP, UVICORN_PORT
 from services.marzban import marzban_api
 from webhooks.webhook_yoomoney import app
 from bot_instance import bot
