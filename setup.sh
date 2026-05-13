@@ -8,8 +8,7 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-PROJECT_DIR="opt/PsinaBot"
-apt update && apt upgrade
+PROJECT_DIR="/opt/PsinaBot"
 echo -e "${BLUE}>>> Запуск процесса установки бота...${NC}"
 
 # 1. Проверка на root
@@ -17,6 +16,9 @@ if [ "$EUID" -ne 0 ]; then
   echo "Пожалуйста, запустите скрипт от имени root (через sudo)"
   exit 1
 fi
+
+apt update && apt upgrade -y
+apt install -y git curl
 
 # 2. Создаем папку, если её нет (нужен root)
 if [ ! -d "$PROJECT_DIR" ]; then
@@ -26,7 +28,7 @@ fi
 
 cd "$PROJECT_DIR"
 
-echo "${BLUE}>>> Загрузка проекта...${NC}"
+echo -e "${BLUE}>>> Загрузка проекта...${NC}"
 if [ -z "$(ls -A .)" ]; then
     echo "Папка пуста, клонирую репозиторий..."
     git clone https://github.com/Flaimas/PsinaBot.git .
@@ -41,15 +43,13 @@ if ! command -v docker &> /dev/null; then
     curl -fsSL https://get.docker.com | sh
 fi
 
+# 4. Создание .env файла
 echo -e "${GREEN}Конфигурация окружения:${NC}"
 read -p "Введите API токен бота: " BOT_TOKEN
-
-# 4. Создание .env файла
 echo -e "${BLUE}Создание .env файла...${NC}"
 if [ ! -f .env ]; then
     cp .env.example .env
-    read -p "Введите BOT_TOKEN: " token
-    sed -i "s/REPLACE_ME_TOKEN/$token/g" .env
+    sed -i "s/YOUR_BOT_TOKEN/$BOT_TOKEN/g" .env
 fi
 
 # 6. Запуск
