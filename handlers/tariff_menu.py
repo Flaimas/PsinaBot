@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from services.marzban import marzban_api
+from loader import marzban_api
 from services.utils import get_media
 from utils.keyboards import get_tariff_menu_kb, get_period_menu_kb, get_tariff_menu_existing_kb
 from utils.text import SUB_LIST_TEXT, PERIOD_MENU_TEXT, EXISTING_TARIFF_TEXT

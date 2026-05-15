@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from services.marzban import marzban_api
+from loader import marzban_api
 from datetime import datetime, timezone, timedelta
 from database.database import check_notification, set_notified
 

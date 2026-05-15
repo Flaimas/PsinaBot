@@ -151,6 +151,15 @@ async def get_active_transaction(tg_id: int, tariff_name: str, day: int):
         )
         return await cursor.fetchone()
 
+async def get_order_info(payment_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            'SELECT tg_id, tariff_name, day, status FROM transactions '
+            'WHERE payment_id = ?',
+            (payment_id,)
+        )
+        return await cursor.fetchone()
+
 async def succeeded_transaction(payment_id):
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(

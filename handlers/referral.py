@@ -1,7 +1,7 @@
 from aiogram.utils.deep_linking import create_start_link
 from aiogram.types import CallbackQuery
 from aiogram import Router, F
-from bot_instance import bot
+from loader import bot
 from database.database import get_count_referrals, get_reward_balance
 from services.utils import get_media
 from utils.keyboards import get_referral_kb

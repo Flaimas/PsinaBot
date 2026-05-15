@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import InlineKeyboardButton, CallbackQuery, CopyTextButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from services.marzban import marzban_api
+from loader import marzban_api
 from services.utils import days_left, traffic_left, SUB_STATUS, get_media
 from prices import PRICES
 from utils.keyboards import get_sub_menu_kb, get_no_sub_menu_kb, get_link_kb

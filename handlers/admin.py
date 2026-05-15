@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardButton, CallbackQuery, Message, CopyText
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config import ADMIN_IDS
-from services.marzban import marzban_api
+from loader import marzban_api
 from utils.keyboards import get_admin_panel_kb, get_tg_access_kb
 
 router = Router()

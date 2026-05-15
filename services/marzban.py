@@ -1,5 +1,3 @@
-from sys import prefix
-
 import aiohttp
 from config import MARZBAN_URL, MARZBAN_USERNAME, MARZBAN_PASSWORD
 from datetime import datetime, timedelta, timezone
@@ -130,5 +128,3 @@ class MarzbanAPI:
     def get_expire_timestamp(days: int) -> int:
         expire = datetime.now(timezone.utc) + timedelta(days=days)
         return int(expire.timestamp())
-
-marzban_api = MarzbanAPI(MARZBAN_URL, MARZBAN_USERNAME, MARZBAN_PASSWORD)

@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from database.database import check_or_register_user, check_use_trial, set_trial_used, get_referrer
-from services.marzban import marzban_api
+from loader import marzban_api
 from services.utils import SUB_STATUS, get_media
 from utils.keyboards import get_trial_error_kb, get_trial_success_kb, get_menu_trial_kb, get_start_kb, \
     get_trial_tech_error_kb, get_new_user_kb

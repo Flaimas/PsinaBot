@@ -3,8 +3,10 @@ import logging
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 
+from database.database import get_active_transaction, get_order_info
+from loader import yookassa_api
 from prices import PRICES
-from services.payment import get_or_create_payment
+from services.payment import get_or_create_payment, successful_payment
 from services.utils import get_media
 from utils.keyboards import get_create_payment_kb, get_create_payment_error_kb
 from utils.text import CREATE_PAYMENT_TEXT, CREATE_PAYMENT_ERROR_TEXT
@@ -29,11 +31,11 @@ async def payment(callback: CallbackQuery):
         caption = CREATE_PAYMENT_TEXT.format(
             tariff=tariff,
             day=day,
-            amount=PRICES.get(tariff).get(str(day))
+            amount=PRICES.get(tariff).get(str(day),)
         )
         await callback.message.edit_media(
             media=get_media('pay_menu', caption=caption),
-            reply_markup=get_create_payment_kb(payment_url, tariff)
+            reply_markup=get_create_payment_kb(payment_url, tariff, payment_id)
         )
     else:
         await callback.message.edit_media(
@@ -41,3 +43,17 @@ async def payment(callback: CallbackQuery):
             reply_markup=get_create_payment_error_kb(),
         )
         logging.error(f'Ошибка! URL для оплаты не был создан!')
+
+@router.callback_query(F.data.startswith('check_payment_'))
+async def check_payment(callback: CallbackQuery):
+    parts = callback.data.split("_")
+    payment_id = parts[2]
+
+    status_payment = await yookassa_api.find_one(payment_id)
+    tg_id, tariff, day, db_status = await get_order_info(payment_id)
+
+    if status_payment['status'] == 'succeeded' and db_status == 'pending':
+        await successful_payment(tg_id, tariff, day, payment_id)
+        await callback.message.delete()
+    else:
+        await callback.answer(text="⌛ Платеж еще не поступил. Попробуйте через минуту!")

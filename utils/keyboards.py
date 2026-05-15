@@ -4,13 +4,11 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from config import SUPPORT_URL
 from prices import PRICES
 
-
 def get_trial_tech_error_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data='start'))
     builder.row(InlineKeyboardButton(text="Техподдержка", url=SUPPORT_URL))
     return builder.as_markup()
-
 
 def get_trial_error_kb():
     builder = InlineKeyboardBuilder()
@@ -18,20 +16,17 @@ def get_trial_error_kb():
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data='start'))
     return builder.as_markup()
 
-
 def get_trial_success_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="🔗 Получить подписку", callback_data='get_link'))
     builder.row(InlineKeyboardButton(text="Инструкции", callback_data='instruction'))
     return builder.as_markup()
 
-
 def get_menu_trial_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Активировать период", callback_data='trial_subscription'))
     builder.row(InlineKeyboardButton(text="Назад", callback_data='start'))
     return builder.as_markup()
-
 
 def get_start_kb(sub_status):
     builder = InlineKeyboardBuilder()
@@ -48,7 +43,6 @@ def get_start_kb(sub_status):
     builder.row(InlineKeyboardButton(text="Техподдержка", callback_data="help"))
     return builder.as_markup()
 
-
 def get_referral_kb(link):
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Поделиться ссылкой",
@@ -56,13 +50,11 @@ def get_referral_kb(link):
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data='start'))
     return builder.as_markup()
 
-
 def get_success_payment_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Настроить подключение", callback_data='menu_sub'))
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data='start'))
     return builder.as_markup()
-
 
 def get_failed_payment_kb():
     builder = InlineKeyboardBuilder()
@@ -70,12 +62,10 @@ def get_failed_payment_kb():
     builder.row(InlineKeyboardButton(text="Попробовать снова", callback_data='tariff_menu'))
     return builder.as_markup()
 
-
 def get_add_reward_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Мои рефералы", callback_data='referral'))
     return builder.as_markup()
-
 
 def get_new_user_kb():
     builder = InlineKeyboardBuilder()
@@ -83,21 +73,19 @@ def get_new_user_kb():
     builder.row(InlineKeyboardButton(text="В меню", callback_data='start'))
     return builder.as_markup()
 
-
-def get_create_payment_kb(payment_url: str, tariff: str):
+def get_create_payment_kb(payment_url: str, tariff: str, payment_id: str):
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text='Оплатить подписку 💳', url=payment_url))
+    builder.row(InlineKeyboardButton(text='Проверить оплату', callback_data=f'check_payment_{payment_id}'))
     builder.row(InlineKeyboardButton(text='Изменить срок', callback_data=f"period_{tariff}"))
     builder.row(InlineKeyboardButton(text='Отмена', callback_data=f'start'))
     return builder.as_markup()
-
 
 def get_create_payment_error_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text='Повторить попытку', callback_data='tariff_menu'))
     builder.row(InlineKeyboardButton(text='🏠 Главное меню', callback_data='start'))
     return builder.as_markup()
-
 
 def get_sub_menu_kb(tariff):
     builder = InlineKeyboardBuilder()
@@ -149,13 +137,11 @@ def get_period_menu_kb(tariff: str):
     builder.row(InlineKeyboardButton(text="Назад к тарифам", callback_data='tariff_menu'))
     return builder.as_markup()
 
-
 def get_tariff_menu_existing_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Назад к подписке", callback_data='menu_sub'))
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data='start'))
     return builder.as_markup()
-
 
 def get_help_menu_kb():
     builder = InlineKeyboardBuilder()
@@ -163,7 +149,6 @@ def get_help_menu_kb():
     builder.row(InlineKeyboardButton(text="Написать в поддержку", url=SUPPORT_URL))
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data='start'))
     return builder.as_markup()
-
 
 def get_instructions_kb():
     builder = InlineKeyboardBuilder()
@@ -178,7 +163,6 @@ def get_instructions_kb():
     builder.row(InlineKeyboardButton(text="Android TV", callback_data='android_tv'))
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data='start'))
     return builder.as_markup()
-
 
 def get_app_install_kb():
     builder = InlineKeyboardBuilder()

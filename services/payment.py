@@ -1,19 +1,14 @@
 import logging
 from datetime import datetime, timezone, timedelta
 from aiogram import Bot
-from config import ACCOUNT_ID, SECRET_KEY, REFERRAL_REWARD_RATIO, ADMIN_IDS
+from config import REFERRAL_REWARD_RATIO, ADMIN_IDS
 from database.database import get_referrer, add_reward, create_transaction, get_active_transaction, issued_subscription
 from prices import PRICES
-from services.marzban import marzban_api
-
+from loader import marzban_api
 import uuid
-from yookassa import Payment, Configuration
-
+from loader import yookassa_api, bot
 from utils.keyboards import get_success_payment_kb, get_failed_payment_kb, get_add_reward_kb, get_notification_kb
 from utils.text import PAYMENT_SUCCESS_TEXT, PAYMENT_FAILED_TEXT, ADD_REWARD_TEXT, NOTIFICATION_BUY_SUB_TEXT
-
-Configuration.account_id = ACCOUNT_ID
-Configuration.secret_key = SECRET_KEY
 
 async def create_payment(user_id: int, tariff: str, day: int):
     try:
@@ -29,7 +24,7 @@ async def create_payment(user_id: int, tariff: str, day: int):
             logging.error(f'Ошибка! Срок {day} дней не найден для тарифа {tariff_info}!')
             return None, None
 
-        payment = Payment.create({
+        payment = await yookassa_api.create({
             "amount": {
                 "value": amount,
                 "currency": "RUB"
@@ -47,8 +42,8 @@ async def create_payment(user_id: int, tariff: str, day: int):
             "description": "Оплата подписки"
         }, idempotence_key)
 
-        confirmation_url = payment.confirmation.confirmation_url
-        payment_id = payment.id
+        confirmation_url = payment['confirmation']['confirmation_url']
+        payment_id = payment['id']
 
         await create_transaction(
             tg_id=user_id,
@@ -73,15 +68,15 @@ async def get_or_create_payment(tg_id: int, tariff_name: str, day: int):
 
         if datetime.now(timezone.utc) - created_at < timedelta(minutes=8):
             try:
-                existing_payment = Payment.find_one(payment_id)
-                if existing_payment.status == 'pending':
-                    return existing_payment.confirmation.confirmation_url, payment_id
+                existing_payment = await yookassa_api.find_one(payment_id)
+                if existing_payment['status'] == 'pending':
+                    return existing_payment['confirmation']['confirmation_url'], payment_id
             except Exception as e:
                 logging.error(f'Платеж {payment_id} не актуален в ЮKassa: {e}')
 
     return await create_payment(tg_id, tariff_name, day)
 
-async def successful_payment(bot: Bot, user_id: int, tariff: str, day: int, payment_id: str):
+async def successful_payment(user_id: int, tariff: str, day: int, payment_id: str):
     user_name = f"tg_{user_id}"
     tariff_data = PRICES.get(tariff, {})
     data_limit = tariff_data.get("data_limit")
