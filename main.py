@@ -35,8 +35,8 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
 
     schedule = AsyncIOScheduler()
-    # schedule.add_job(check_vpn_expire, 'cron', hour=10, args=[bot]) #основная база
-    # schedule.add_job(check_expire_users, 'interval', hours=6, args=[bot]) #база баз
+    schedule.add_job(check_vpn_expire, 'cron', hour=10, args=[bot]) #основная база
+    schedule.add_job(check_expire_users, 'interval', hours=6, args=[bot]) #база баз
 
     # schedule.add_job(check_vpn_expire, 'interval', seconds=10, args=[bot]) #Для тестов
     # schedule.add_job(check_expire_users, 'interval', seconds=10, args=[bot]) #Для тестов

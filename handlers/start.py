@@ -11,6 +11,11 @@ from utils.text import TRIAL_ERROR_TEXT, TRIAL_SUCCESS_TEXT, ERROR_TECH_TEXT, ME
 
 router = Router()
 
+@router.message(F.photo)
+async def get_photo_id(message: Message):
+    photo_id = message.photo[-1].file_id
+    await message.answer(text=f'{photo_id}')
+
 @router.message(CommandStart())
 async def start_handler(message: Message, command: CommandObject):
     user_name = message.from_user.first_name

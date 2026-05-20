@@ -75,8 +75,8 @@ def get_new_user_kb():
 
 def get_create_payment_kb(payment_url: str, tariff: str, payment_id: str):
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text='Оплатить подписку 💳', url=payment_url))
-    builder.row(InlineKeyboardButton(text='Проверить оплату', callback_data=f'check_payment_{payment_id}'))
+    builder.row(InlineKeyboardButton(text='Оплатить подписку 💳', url=payment_url, style='primary'))
+    builder.row(InlineKeyboardButton(text='Проверить оплату', callback_data=f'check_payment_{payment_id}', style='success'))
     builder.row(InlineKeyboardButton(text='Изменить срок', callback_data=f"period_{tariff}"))
     builder.row(InlineKeyboardButton(text='Отмена', callback_data=f'start'))
     return builder.as_markup()

@@ -1,16 +1,17 @@
 MENU_IMAGES = {
-    'start': 'AgACAgIAAxkBAAIGGGnWOgn0K1wlzRxdM41Z6TeWkX6ZAAItFWsbuXSwSjl5Q2kc7ln6AQADAgADeQADOwQ',
-    'error': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'trial_sub': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'sub_menu': 'AgACAgIAAxkBAAIGHWnWOkwBQTBi07Di9MRH_WYnMaJFAAIyFWsbuXSwSpB-xDccbBLtAQADAgADeQADOwQ',
-    'link_menu': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'menu_trial': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'ref_menu': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'help_menu': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'instructions_menu': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'pay_menu': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'error_pay': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
-    'tariff_menu': 'AgACAgIAAxkBAAIF-GnPtaD0HA_Yw5x7f_hPPDqROv5RAAL8GWsbBWNxSuqwGIr3wJp6AQADAgADeQADOgQ',
+    'start': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+
+    'error': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'trial_sub': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'sub_menu': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'link_menu': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'menu_trial': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'ref_menu': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'help_menu': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'instructions_menu': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'pay_menu': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'error_pay': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
+    'tariff_menu': 'AgACAgIAAxkBAAPXagmTOzH8wMiuS50BI8LI4ExiVnIAAi0Vaxu5dLBK39O7orqF338BAAMCAAN5AAM7BA',
 }
 
 TEXT_START_MENU = (
@@ -59,7 +60,8 @@ CREATE_PAYMENT_TEXT = (
     "К оплате: {amount} ₽\n\n"
     "<b>Внимание:</b>\n"
     "— Перед оплатой обязательно отключите действующий VPN\n"
-    "— После совершения платежа не закрывайте это окно до подтверждения активации"
+    "— После совершения платежа не закрывайте это окно до подтверждения активации\n" 
+    '— Обязательно нажмите кнопку <b>"Проверить оплату"</b>!'
 )
 
 CREATE_PAYMENT_ERROR_TEXT = (
@@ -68,6 +70,11 @@ CREATE_PAYMENT_ERROR_TEXT = (
 )
 
 PAYMENT_SUCCESS_TEXT = "Тариф {tariff} успешно активирован. Срок продлен на {day} дней."
+
+PAYMENT_CHANGESUB_TEXT = (
+    "Тариф {old_tariff} успешно изменен на {tariff}.\n"
+    "Он будет автоматически активирован, когда текущий тариф закончится."
+)
 
 PAYMENT_FAILED_TEXT = "Ошибка синхронизации с VPN-сервером. Пожалуйста, обратитесь в поддержку."
 

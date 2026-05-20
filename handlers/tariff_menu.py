@@ -15,17 +15,6 @@ async def tariff_menu(callback: CallbackQuery):
     user_name = f"tg_{tg_id}"
     try:
         user_info = await marzban_api.get_user_info(user_name)
-        if user_info is not None:
-
-            user_tariff = user_info.get('note')
-            user_status = user_info.get('status')
-
-            if user_status not in ['expire', 'on_hold'] and user_tariff != "TRIAL":
-                return await callback.message.edit_media(
-                    media=get_media('tariff_menu', EXISTING_TARIFF_TEXT),
-                    reply_markup=get_tariff_menu_existing_kb()
-                )
-
     except Exception as e:
         print(f"Ошибка API! Чертов марзбан лег: {e}")
         return

@@ -1,6 +1,7 @@
 import aiohttp
 from config import MARZBAN_URL, MARZBAN_USERNAME, MARZBAN_PASSWORD
 from datetime import datetime, timedelta, timezone
+import time
 
 class MarzbanAPI:
     def __init__(self, url, username, password):
@@ -93,6 +94,34 @@ class MarzbanAPI:
             "data_limit": data_limit,
             "data_limit_reset_strategy": reset_strategy,
             "note": tariff,
+        }
+        status, data = await self._request('put', f'{self.url}/api/user/{username}', json=payload)
+        return status == 200
+    
+    async def update_subscription(self, username: str, tariff: str, expire_now: int,
+                                  day: int, reset_traffic: bool = False):
+        payload = {
+            "expire": expire_now + int(timedelta(days=day).total_seconds()),
+            "note": tariff
+        }
+        status, data = await self._request('put', f'{self.url}/api/user/{username}', json=payload)
+
+        if reset_traffic:
+            await self.reset_user_traffic(username=username)
+
+        return status == 200
+    
+    async def add_next_plan(self, username: str, tariff: str, expire_now: int, day: int):
+        NEXT_TARIF_EXPIRE = expire_now + int(timedelta(days=day).total_seconds())
+        NEXT_TARIF_DATA_LIMIT = 214748364800
+        payload = {
+            "next_plan": {
+                "add_remaining_traffic": False,
+                "data_limit": NEXT_TARIF_DATA_LIMIT,
+                "expire": NEXT_TARIF_EXPIRE,
+                "fire_on_either": True
+            },
+            "note": tariff
         }
         status, data = await self._request('put', f'{self.url}/api/user/{username}', json=payload)
         return status == 200

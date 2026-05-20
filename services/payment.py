@@ -8,7 +8,8 @@ from loader import marzban_api
 import uuid
 from loader import yookassa_api, bot
 from utils.keyboards import get_success_payment_kb, get_failed_payment_kb, get_add_reward_kb, get_notification_kb
-from utils.text import PAYMENT_SUCCESS_TEXT, PAYMENT_FAILED_TEXT, ADD_REWARD_TEXT, NOTIFICATION_BUY_SUB_TEXT
+from utils.text import PAYMENT_SUCCESS_TEXT, PAYMENT_FAILED_TEXT, ADD_REWARD_TEXT, NOTIFICATION_BUY_SUB_TEXT, PAYMENT_CHANGESUB_TEXT
+from subscription_fabric import change_subscription
 
 async def create_payment(user_id: int, tariff: str, day: int):
     try:
@@ -84,13 +85,28 @@ async def successful_payment(user_id: int, tariff: str, day: int, payment_id: st
     user_data = await marzban_api.get_user_info(user_name)
 
     if user_data:
-        new_expire = calculate_new_expire(user_data.get('expire'), day)
-        success = await marzban_api.update_user(user_name, new_expire, data_limit, tariff)
+        # new_expire = calculate_new_expire(user_data.get('expire'), day)
+        # success = await marzban_api.update_user(user_name, new_expire, data_limit, tariff)
+        old_tariff = user_data['note']
+        success = await change_subscription(username=user_name, new_tariff=tariff, day=day)
     else:
         success = await marzban_api.create_user(user_name, day, tariff, data_limit, 'active')
 
     if success:
         await issued_subscription(payment_id)
+
+        if old_tariff == tariff:
+            await bot.send_message(
+            chat_id=user_id,
+            text=PAYMENT_SUCCESS_TEXT.format(tariff=tariff, day=day),
+            reply_markup=get_success_payment_kb()
+        )
+        else:
+            await bot.send_message(
+            chat_id=user_id,
+            text=PAYMENT_CHANGESUB_TEXT.format(old_tariff=old_tariff, tariff=tariff),
+            reply_markup=get_success_payment_kb()
+        )
 
         amount = PRICES.get(tariff,{}).get(str(day), 0)
         reward_amount = int(amount * REFERRAL_REWARD_RATIO)
@@ -105,12 +121,6 @@ async def successful_payment(user_id: int, tariff: str, day: int, payment_id: st
                 )
             except Exception:
                 pass
-
-        await bot.send_message(
-            chat_id=user_id,
-            text=PAYMENT_SUCCESS_TEXT.format(tariff=tariff, day=day),
-            reply_markup=get_success_payment_kb()
-        )
 
         if ADMIN_IDS:
             try:

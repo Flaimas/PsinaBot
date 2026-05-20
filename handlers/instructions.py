@@ -16,53 +16,6 @@ async def instruction(callback: CallbackQuery):
         reply_markup=get_instructions_kb(),
     )
 
-# INSTRUCTIONS = {
-#     "ios":"""
-# <b>Настройка на iOS</b>\n
-# 1. Скачай приложение <a href="https://apps.apple.com/ru/app/v2raytun/id6476628951">v2RayTun</a> из App Store\n
-# 2. Нажми <b>"+"</b> в правом верхнем углу\n
-# 3. Выбери <b>"Импорт из буфера обмена"</b>\n
-# 4. Вставь свою ссылку из бота (ссылку можно получить по кнопке внизу)\n
-# 5. Нажми на профиль → <b>"Подключить"</b>\n
-#     """,
-#
-#     "android": """
-# <b>Настройка VPN на Android</b>\n
-# 1. Скачай приложение <a href="https://play.google.com/store/apps/details?id=com.v2raytun.android">v2RayTun</a> из GooglePlay\n
-#     1.1 Если GooglePlay не доступен <a href="https://github.com/DigneZzZ/v2raytun/releases/download/5.19.64/v2RayTun_universal.apk">v2RayTun</a> с GitHub\n
-# 2. Нажми <b>"+"</b> в правом верхнем углу\n
-# 3. Выбери <b>"Импорт из буфера обмена"</b>\n
-# 4. Вставь свою ссылку из бота (ссылку можно получить по кнопке внизу)\n
-# 5. Нажми на профиль → <b>"Подключить"</b>\n
-#     """,
-#
-#     "windows": """
-# <b>Настройка VPN на Windows</b>\n
-# 1. Скачай <a href="https://github.com/Happ-proxy/happ-desktop/releases/latest/download/setup-Happ.x64.exe">Happ</a> с GitHub\n
-# 2. Нажми <b>"+" → "Буфер обмена"</b>\n
-# 3. Вставь свою ссылку из бота (ссылку можно получить по кнопке внизу)\n
-# 4. Нажми <b>"Подключить"</b>\n
-#     """,
-#
-#     "mac_os": """
-# <b>Настройка VPN на MacOS</b>\n
-# 1. Скачай приложение <a href="https://apps.apple.com/ru/app/v2raytun/id6476628951">v2RayTun</a> из App Store\n
-# 2. Нажми <b>"+"</b> в правом верхнем углу\n
-# 3. Выбери <b>"Импорт из буфера обмена"</b>\n
-# 4. Вставь свою ссылку из бота (ссылку можно получить по кнопке внизу)\n
-# 5. Нажми на профиль → <b>"Подключить"</b>\n
-#     """,
-#
-#     "android_tv":"""
-# <b>Настройка VPN на AndroidTV</b>\n
-# 1. Скачай приложение <a href="https://play.google.com/store/apps/details?id=com.v2raytun.android">v2RayTun</a> из GooglePlay\n
-#     1.1 Если GooglePlay не доступен <a href="https://github.com/DigneZzZ/v2raytun/releases/download/5.19.64/v2RayTun_universal.apk">v2RayTun</a> с GitHub.com\n
-# 2. Нажми <b>"+"</b> в правом верхнем углу\n
-# 3. Выбери <b>"Импорт из буфера обмена"</b>\n
-# 4. Вставь свою ссылку из бота (ссылку можно получить по кнопке внизу)\n
-# 5. Нажми на профиль → <b>"Подключить"</b>\n
-#     """
-# }
 INSTRUCTIONS = {
     "ios": (
         "<b>Настройка на iOS</b>\n\n"
