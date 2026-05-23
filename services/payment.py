@@ -83,11 +83,11 @@ async def successful_payment(user_id: int, tariff: str, day: int, payment_id: st
     data_limit = tariff_data.get("data_limit")
 
     user_data = await marzban_api.get_user_info(user_name)
+    old_tariff = user_data['note'] if user_data else None
 
     if user_data:
         # new_expire = calculate_new_expire(user_data.get('expire'), day)
         # success = await marzban_api.update_user(user_name, new_expire, data_limit, tariff)
-        old_tariff = user_data['note']
         success = await change_subscription(username=user_name, new_tariff=tariff, day=day)
     else:
         success = await marzban_api.create_user(user_name, day, tariff, data_limit, 'active')

@@ -1,14 +1,16 @@
-import uvicorn
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from services.scheduler import check_vpn_expire, check_expire_users
 from handlers import start, help, submenu, instructions, referral, payment, tariff_menu, admin
 from database.database import create_db
-from config import UVICORN_IP, UVICORN_PORT
 from loader import bot, marzban_api, yookassa_api
 import asyncio
+from utils.logger import setup_logger
+import logging
+setup_logger()
 
+logger = logging.getLogger(__name__)
 dp = Dispatcher()
 
 dp.include_router(start.router)
@@ -43,14 +45,14 @@ async def main():
     schedule.start()
 
     try:
-        print("Бот успешно запущен в режиме polling...")
+        logger.info("Бот успешно запущен в режиме polling...")
         await dp.start_polling(bot)
     finally:
-        print("Остановка бота... Закрываем сессии.")
+        logger.info("Остановка бота... Закрываем сессии.")
         await yookassa_api.close_session()
-        print("Сессия ЮКассы закрыта.")
+        logger.info("Сессия ЮКассы закрыта.")
         await marzban_api.close()
-        print("Сессия Marzban закрыта.")
+        logger.info("Сессия Marzban закрыта.")
 
 
 

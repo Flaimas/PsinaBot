@@ -2,12 +2,13 @@ from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message, CopyTextButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
 from config import ADMIN_IDS
 from loader import marzban_api
 from utils.keyboards import get_admin_panel_kb, get_tg_access_kb
+import logging
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 @router.message(Command('admin'), F.from_user.id.in_(ADMIN_IDS))
 async def admin(message: Message):
@@ -54,6 +55,6 @@ async def tg_access(callback: CallbackQuery):
 
     except Exception as e:
         await callback.message.edit_text(f"Ошибка на стороне API! {e}")
-        print(f"Ошибка на стороне API: {e}")
+        logger.error(f"Ошибка на стороне API: {e}")
 
 

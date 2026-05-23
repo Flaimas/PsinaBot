@@ -11,6 +11,7 @@ from services.utils import get_media
 from utils.keyboards import get_create_payment_kb, get_create_payment_error_kb
 from utils.text import CREATE_PAYMENT_TEXT, CREATE_PAYMENT_ERROR_TEXT
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 @router.callback_query(F.data.startswith('pay_'))
@@ -42,18 +43,38 @@ async def payment(callback: CallbackQuery):
             media=get_media('error_pay',caption=CREATE_PAYMENT_ERROR_TEXT),
             reply_markup=get_create_payment_error_kb(),
         )
-        logging.error(f'Ошибка! URL для оплаты не был создан!')
+        logger.error(f'Ошибка! URL для оплаты не был создан!')
+
+processing_payments = set()
 
 @router.callback_query(F.data.startswith('check_payment_'))
 async def check_payment(callback: CallbackQuery):
     parts = callback.data.split("_")
     payment_id = parts[2]
 
-    status_payment = await yookassa_api.find_one(payment_id)
-    tg_id, tariff, day, db_status = await get_order_info(payment_id)
+    if payment_id in processing_payments:
+        await callback.answer("⌛ Уже проверяем, подождите...")
+        return
+    
+    processing_payments.add(payment_id)
+    try:
+        status_payment = await yookassa_api.find_one(payment_id)
+        if not status_payment:
+            await callback.answer(text="⚠️ Не удалось связаться с платёжным сервисом. Попробуйте позже.")
+            return
 
-    if status_payment['status'] == 'succeeded' and db_status == 'pending':
-        await successful_payment(tg_id, tariff, day, payment_id)
-        await callback.message.delete()
-    else:
-        await callback.answer(text="⌛ Платеж еще не поступил. Попробуйте через минуту!")
+        order_info = await get_order_info(payment_id)
+        if not order_info:
+            await callback.answer(text="⚠️ Заказ не найден. Обратитесь в поддержку.")
+            return
+
+        tg_id, tariff, day, db_status = order_info
+
+        if status_payment['status'] == 'succeeded' and db_status == 'pending':
+            await successful_payment(tg_id, tariff, day, payment_id)
+            await callback.message.delete()
+        else:
+            await callback.answer(text="⌛ Платеж еще не поступил. Попробуйте через минуту!")
+
+    finally:
+        processing_payments.discard(payment_id)
